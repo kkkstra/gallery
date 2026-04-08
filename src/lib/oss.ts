@@ -1,7 +1,6 @@
-import OSS from "ali-oss";
-import { randomUUID } from "crypto";
+import { createHmac, randomUUID } from "crypto";
 
-function getClient() {
+function getConfig() {
   const region = process.env.ALIYUN_OSS_REGION;
   const bucket = process.env.ALIYUN_OSS_BUCKET;
   const accessKeyId = process.env.ALIYUN_OSS_ACCESS_KEY_ID;
@@ -13,20 +12,13 @@ function getClient() {
     );
   }
 
-  return new OSS({
-    region,
-    bucket,
-    accessKeyId,
-    accessKeySecret,
-    secure: true,
-  });
+  return { region, bucket, accessKeyId, accessKeySecret };
 }
 
 function getPublicBaseUrl() {
   const custom = process.env.ALIYUN_OSS_CUSTOM_DOMAIN;
   if (custom) return `https://${custom}`;
-  const bucket = process.env.ALIYUN_OSS_BUCKET;
-  const region = process.env.ALIYUN_OSS_REGION;
+  const { bucket, region } = getConfig();
   return `https://${bucket}.${region}.aliyuncs.com`;
 }
 
@@ -38,16 +30,32 @@ function buildObjectKey(filename: string): string {
   return `photos/${yyyy}/${mm}/${randomUUID()}-${safe}`;
 }
 
-export function getPresignedPut(filename: string, contentType: string) {
-  const client = getClient();
-  const key = buildObjectKey(filename);
+/**
+ * Generate an OSS V1 presigned PUT URL using HMAC-SHA1.
+ * No external SDK needed — only Node.js built-in crypto.
+ */
+function signV1Put(key: string, contentType: string, expireSeconds: number) {
+  const { bucket, region, accessKeyId, accessKeySecret } = getConfig();
+  const expires = Math.floor(Date.now() / 1000) + expireSeconds;
 
-  const signedUrl = client.signatureUrl(key, {
-    method: "PUT",
-    expires: 300,
-    "Content-Type": contentType,
+  const stringToSign = `PUT\n\n${contentType}\n${expires}\n/${bucket}/${key}`;
+  const signature = createHmac("sha1", accessKeySecret)
+    .update(stringToSign)
+    .digest("base64");
+
+  const host = `https://${bucket}.${region}.aliyuncs.com`;
+  const params = new URLSearchParams({
+    OSSAccessKeyId: accessKeyId,
+    Expires: String(expires),
+    Signature: signature,
   });
 
+  return `${host}/${encodeURI(key)}?${params.toString()}`;
+}
+
+export function getPresignedPut(filename: string, contentType: string) {
+  const key = buildObjectKey(filename);
+  const signedUrl = signV1Put(key, contentType, 300);
   const publicUrl = `${getPublicBaseUrl()}/${key}`;
   const thumbnailUrl = `${publicUrl}?x-oss-process=image/resize,w_800/quality,q_85`;
 
