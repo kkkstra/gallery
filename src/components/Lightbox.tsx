@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Photo } from "@/lib/types";
+
+const DESC_TRUNCATE = 120;
 
 interface LightboxProps {
   photos: Photo[];
@@ -15,7 +17,7 @@ interface LightboxProps {
 function DetailItem({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div className="flex flex-col items-center gap-0.5">
+    <div className="flex flex-col gap-0.5">
       <span className="text-[10px] uppercase tracking-wider text-white/40">{label}</span>
       <span className="text-xs text-white/80">{value}</span>
     </div>
@@ -31,11 +33,18 @@ export default function Lightbox({
   const photo = photos[currentIndex];
   const [direction, setDirection] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const descTruncated = useMemo(() => {
+    if (!photo.description || photo.description.length <= DESC_TRUNCATE) return null;
+    return photo.description.slice(0, DESC_TRUNCATE).trimEnd() + "...";
+  }, [photo.description]);
 
   const goNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
       setDirection(1);
+      setDescExpanded(false);
       onNavigate(currentIndex + 1);
     }
   }, [currentIndex, photos.length, onNavigate]);
@@ -43,6 +52,7 @@ export default function Lightbox({
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setDirection(-1);
+      setDescExpanded(false);
       onNavigate(currentIndex - 1);
     }
   }, [currentIndex, onNavigate]);
@@ -174,42 +184,59 @@ export default function Lightbox({
 
       {/* Caption + Details */}
       <div
-        className="absolute bottom-0 left-0 right-0 text-center pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
-          <h3 className="text-lg font-light tracking-wider text-white">{photo.title}</h3>
-          {photo.description && (
-            <p className="mt-1 text-sm text-white/60">{photo.description}</p>
-          )}
-          <p className="mt-2 text-xs text-white/40">
-            {currentIndex + 1} / {photos.length}
-          </p>
-
-          <AnimatePresence>
-            {showDetails && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-3 border-t border-white/10 pt-4 px-4">
-                  <DetailItem label="Category" value={photo.category} />
-                  <DetailItem label="Dimensions" value={`${photo.width} × ${photo.height}`} />
-                  <DetailItem label="Camera" value={photo.camera} />
-                  <DetailItem label="Lens" value={photo.lens} />
-                  <DetailItem label="Aperture" value={photo.aperture} />
-                  <DetailItem label="Shutter" value={photo.shutterSpeed} />
-                  <DetailItem label="ISO" value={photo.iso} />
-                  <DetailItem label="Focal" value={photo.focalLength} />
-                  <DetailItem label="Date" value={photo.takenAt} />
-                  <DetailItem label="Location" value={photo.location} />
-                </div>
-              </motion.div>
+        <div className="pb-6 pt-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
+          <div className="max-w-3xl mx-auto px-6 sm:px-10">
+            <div className="flex items-baseline justify-between gap-4">
+              <h3 className="text-lg font-light tracking-wider text-white">{photo.title}</h3>
+              <span className="text-xs text-white/40 shrink-0">
+                {currentIndex + 1} / {photos.length}
+              </span>
+            </div>
+            {photo.description && (
+              <div className="mt-1.5">
+                <p className="text-sm text-white/60 leading-relaxed">
+                  {descTruncated && !descExpanded ? descTruncated : photo.description}
+                </p>
+                {descTruncated && (
+                  <button
+                    type="button"
+                    className="text-xs text-white/40 hover:text-white/70 transition-colors mt-1"
+                    onClick={(e) => { e.stopPropagation(); setDescExpanded((v) => !v); }}
+                  >
+                    {descExpanded ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
             )}
-          </AnimatePresence>
+
+            <AnimatePresence>
+              {showDetails && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 border-t border-white/10 pt-4">
+                    <DetailItem label="Category" value={photo.category} />
+                    <DetailItem label="Dimensions" value={`${photo.width} × ${photo.height}`} />
+                    <DetailItem label="Camera" value={photo.camera} />
+                    <DetailItem label="Lens" value={photo.lens} />
+                    <DetailItem label="Aperture" value={photo.aperture} />
+                    <DetailItem label="Shutter" value={photo.shutterSpeed} />
+                    <DetailItem label="ISO" value={photo.iso} />
+                    <DetailItem label="Focal" value={photo.focalLength} />
+                    <DetailItem label="Date" value={photo.takenAt} />
+                    <DetailItem label="Location" value={photo.location} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </motion.div>

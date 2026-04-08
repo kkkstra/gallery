@@ -33,12 +33,12 @@ export default function PhotoCard({ photo, onClick }: PhotoCardProps) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/40" />
-        <div className="absolute inset-0 flex flex-col items-end justify-end p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+        <div className="absolute inset-0 flex flex-col items-start justify-end p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
           <h3 className="text-base font-light tracking-wider text-white">
             {photo.title}
           </h3>
           {photo.description && (
-            <p className="mt-1 text-xs text-white/70">{photo.description}</p>
+            <p className="mt-1 text-xs text-white/70 line-clamp-2">{photo.description}</p>
           )}
         </div>
       </div>
