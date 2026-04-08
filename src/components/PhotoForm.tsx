@@ -53,8 +53,8 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     !!(initialData?.cameraId || initialData?.lensId || initialData?.aperture),
   );
 
-  const [ossAvailable, setOssAvailable] = useState(false);
-  const [imageMode, setImageMode] = useState<ImageMode>("url");
+  const [ossAvailable, setOssAvailable] = useState<boolean | null>(null);
+  const [imageMode, setImageMode] = useState<ImageMode>("upload");
   const [uploaded, setUploaded] = useState(false);
 
   const [form, setForm] = useState({
@@ -87,9 +87,12 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       setCategories(cats);
       setCamerasList(cams);
       setLensesList(lens);
-      if (oss.configured) {
-        setOssAvailable(true);
-        if (!initialData?.src) setImageMode("upload");
+      setOssAvailable(!!oss.configured);
+      if (!oss.configured && !initialData?.src) {
+        setImageMode("upload");
+      }
+      if (initialData?.src) {
+        setImageMode("url");
       }
       if (!form.categorySlug && cats.length > 0) {
         setForm((prev) => ({ ...prev, categorySlug: cats[0].slug }));
@@ -150,36 +153,59 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       {/* Image Source */}
       <div>
-        {ossAvailable && (
-          <div className="flex gap-1 mb-3 p-0.5 bg-white/5 rounded-lg w-fit">
-            <button
-              type="button"
-              onClick={() => setImageMode("upload")}
-              className={`px-4 py-1.5 text-xs tracking-wider uppercase rounded-md transition-colors ${
-                imageMode === "upload"
-                  ? "bg-white/15 text-white"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              Upload
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageMode("url")}
-              className={`px-4 py-1.5 text-xs tracking-wider uppercase rounded-md transition-colors ${
-                imageMode === "url"
-                  ? "bg-white/15 text-white"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-            >
-              URL
-            </button>
-          </div>
-        )}
+        <div className="flex gap-1 mb-3 p-0.5 bg-white/5 rounded-lg w-fit">
+          <button
+            type="button"
+            onClick={() => setImageMode("upload")}
+            className={`px-4 py-1.5 text-xs tracking-wider uppercase rounded-md transition-colors ${
+              imageMode === "upload"
+                ? "bg-white/15 text-white"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            Upload
+          </button>
+          <button
+            type="button"
+            onClick={() => setImageMode("url")}
+            className={`px-4 py-1.5 text-xs tracking-wider uppercase rounded-md transition-colors ${
+              imageMode === "url"
+                ? "bg-white/15 text-white"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            URL
+          </button>
+        </div>
 
-        {imageMode === "upload" && ossAvailable ? (
+        {imageMode === "upload" ? (
           <div>
-            {uploaded && form.src ? (
+            {ossAvailable === null ? (
+              <div className="flex items-center justify-center py-8 text-sm text-neutral-500">
+                Checking upload service...
+              </div>
+            ) : ossAvailable === false ? (
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-5 space-y-2">
+                <p className="text-sm text-yellow-400 flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  OSS not configured
+                </p>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  To enable direct image upload, set these environment variables in your deployment:
+                </p>
+                <div className="text-xs text-neutral-500 font-mono space-y-0.5 pl-1">
+                  <p>ALIYUN_OSS_REGION</p>
+                  <p>ALIYUN_OSS_BUCKET</p>
+                  <p>ALIYUN_OSS_ACCESS_KEY_ID</p>
+                  <p>ALIYUN_OSS_ACCESS_KEY_SECRET</p>
+                </div>
+                <p className="text-xs text-neutral-500 pt-1">
+                  Switch to the <button type="button" onClick={() => setImageMode("url")} className="text-white underline underline-offset-2">URL</button> tab to paste an image link instead.
+                </p>
+              </div>
+            ) : uploaded && form.src ? (
               <div className="space-y-3">
                 <div className="flex items-start gap-4">
                   <div className="relative h-40 w-60 shrink-0 overflow-hidden rounded-lg bg-white/5">
