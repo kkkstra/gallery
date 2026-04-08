@@ -47,6 +47,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [camerasList, setCamerasList] = useState<Equipment[]>([]);
   const [lensesList, setLensesList] = useState<Equipment[]>([]);
+  const [locationsList, setLocationsList] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showExif, setShowExif] = useState(
@@ -83,10 +84,17 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       fetch("/api/cameras").then((r) => r.json()),
       fetch("/api/lenses").then((r) => r.json()),
       fetch("/api/upload/status").then((r) => r.json()).catch(() => ({ configured: false })),
-    ]).then(([cats, cams, lens, oss]) => {
+      fetch("/api/photos").then((r) => r.json()).catch(() => []),
+    ]).then(([cats, cams, lens, oss, allPhotos]) => {
       setCategories(cats);
       setCamerasList(cams);
       setLensesList(lens);
+      const locs = [...new Set(
+        (allPhotos as { location?: string }[])
+          .map((p) => p.location)
+          .filter(Boolean) as string[],
+      )].sort();
+      setLocationsList(locs);
       setOssAvailable(!!oss.configured);
       if (!oss.configured && !initialData?.src) {
         setImageMode("upload");
@@ -569,6 +577,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
                 </label>
                 <input
                   type="text"
+                  list="locations-list"
                   value={form.location}
                   onChange={(e) =>
                     setForm({ ...form, location: e.target.value })
@@ -576,6 +585,11 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
                   placeholder="Tokyo, Japan"
                   className={inputClass}
                 />
+                <datalist id="locations-list">
+                  {locationsList.map((loc) => (
+                    <option key={loc} value={loc} />
+                  ))}
+                </datalist>
               </div>
             </div>
           </div>

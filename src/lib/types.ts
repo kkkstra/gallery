@@ -16,4 +16,6 @@ export interface Photo {
   focalLength?: string;
   takenAt?: string;
   location?: string;
+  createdAt?: string;
+  sortOrder?: number;
 }
