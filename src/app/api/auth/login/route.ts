@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setAuthCookie } from "@/lib/auth";
+import { signToken, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
-  await setAuthCookie();
-  return NextResponse.json({ ok: true });
+  const token = await signToken();
+  const response = NextResponse.json({ ok: true });
+  setAuthCookie(response, token);
+  return response;
 }

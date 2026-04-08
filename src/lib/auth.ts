@@ -1,6 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const COOKIE_NAME = "gallery_admin_token";
 
@@ -35,21 +34,24 @@ export async function verifyTokenFromRequest(
   return verifyToken(token);
 }
 
-export async function setAuthCookie() {
-  const token = await signToken();
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
+export function setAuthCookie(response: NextResponse, token: string) {
+  response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 
-export async function clearAuthCookie() {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+export function clearAuthCookie(response: NextResponse) {
+  response.cookies.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export { COOKIE_NAME };
