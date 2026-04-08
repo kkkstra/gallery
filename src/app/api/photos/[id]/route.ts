@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { photos, cameras, lenses } from "@/lib/db/schema";
+import { photos, cameras, lenses, collections, collectionPhotos } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyTokenFromRequest } from "@/lib/auth";
 
@@ -108,9 +108,17 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const photoId = Number(id);
+
+  await db.delete(collectionPhotos).where(eq(collectionPhotos.photoId, photoId));
+  await db
+    .update(collections)
+    .set({ coverPhotoId: null })
+    .where(eq(collections.coverPhotoId, photoId));
+
   const result = await db
     .delete(photos)
-    .where(eq(photos.id, Number(id)))
+    .where(eq(photos.id, photoId))
     .returning();
 
   if (result.length === 0) {
