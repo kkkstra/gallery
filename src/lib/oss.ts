@@ -38,6 +38,8 @@ function signV1Put(key: string, contentType: string, expireSeconds: number) {
   const { bucket, region, accessKeyId, accessKeySecret } = getConfig();
   const expires = Math.floor(Date.now() / 1000) + expireSeconds;
 
+  // Content-Type MUST match exactly what the client sends in the request header.
+  // Format: VERB \n Content-MD5 \n Content-Type \n Expires \n CanonicalizedResource
   const stringToSign = `PUT\n\n${contentType}\n${expires}\n/${bucket}/${key}`;
   const signature = createHmac("sha1", accessKeySecret)
     .update(stringToSign)

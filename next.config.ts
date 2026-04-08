@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.aliyuncs.com",
+        hostname: "**.aliyuncs.com",
       },
       ...(ossCustomDomain
         ? [{ protocol: "https" as const, hostname: ossCustomDomain }]

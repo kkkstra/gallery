@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import ExifReader from "exifreader";
+
+export interface ExifData {
+  camera?: string;
+  lens?: string;
+  aperture?: string;
+  shutterSpeed?: string;
+  iso?: string;
+  focalLength?: string;
+  takenAt?: string;
+  location?: string;
+}
 
 export interface UploadResult {
   src: string;
   thumbnail: string;
   width: number;
   height: number;
+  exif: ExifData;
 }
 
 interface ImageUploaderProps {
@@ -31,6 +44,96 @@ function readImageDimensions(file: File): Promise<{ width: number; height: numbe
   });
 }
 
+function formatShutterSpeed(val: number): string {
+  if (val >= 1) return `${val}s`;
+  const denom = Math.round(1 / val);
+  return `1/${denom}s`;
+}
+
+function dmsToDecimal(
+  degrees: number,
+  minutes: number,
+  seconds: number,
+  ref: string,
+): number {
+  let dec = degrees + minutes / 60 + seconds / 3600;
+  if (ref === "S" || ref === "W") dec = -dec;
+  return dec;
+}
+
+async function readExif(file: File): Promise<ExifData> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const tags = ExifReader.load(arrayBuffer, { expanded: true });
+
+    const exif: ExifData = {};
+
+    const exifTags = tags.exif || {};
+    const gps = tags.gps || {};
+
+    // Camera: Make + Model
+    const make = exifTags.Make?.description?.trim();
+    const model = exifTags.Model?.description?.trim();
+    if (make && model) {
+      exif.camera = model.startsWith(make) ? model : `${make} ${model}`;
+    } else if (model) {
+      exif.camera = model;
+    }
+
+    // Lens
+    const lensModel = exifTags.LensModel?.description?.trim();
+    if (lensModel) exif.lens = lensModel;
+
+    // Aperture
+    const fNumber = exifTags.FNumber?.value;
+    if (fNumber) {
+      const f = Array.isArray(fNumber) ? fNumber[0] / fNumber[1] : Number(fNumber);
+      if (f > 0) exif.aperture = `f/${f % 1 === 0 ? f : f.toFixed(1)}`;
+    }
+
+    // Shutter Speed
+    const exposure = exifTags.ExposureTime?.value;
+    if (exposure) {
+      const val = Array.isArray(exposure) ? exposure[0] / exposure[1] : Number(exposure);
+      if (val > 0) exif.shutterSpeed = formatShutterSpeed(val);
+    }
+
+    // ISO
+    const iso = exifTags.ISOSpeedRatings?.value;
+    if (iso != null) {
+      exif.iso = String(Array.isArray(iso) ? iso[0] : iso);
+    }
+
+    // Focal Length
+    const fl = exifTags.FocalLength?.value;
+    if (fl) {
+      const mm = Array.isArray(fl) ? fl[0] / fl[1] : Number(fl);
+      if (mm > 0) exif.focalLength = `${Math.round(mm)}mm`;
+    }
+
+    // Date Taken
+    const dateStr =
+      exifTags.DateTimeOriginal?.description ||
+      exifTags.DateTime?.description;
+    if (dateStr) {
+      // EXIF date format: "2026:04:08 12:30:00" → "2026-04-08"
+      const match = dateStr.match(/^(\d{4})[:\-/](\d{2})[:\-/](\d{2})/);
+      if (match) exif.takenAt = `${match[1]}-${match[2]}-${match[3]}`;
+    }
+
+    // GPS Location
+    const lat = gps.Latitude;
+    const lon = gps.Longitude;
+    if (lat != null && lon != null) {
+      exif.location = `${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
+    }
+
+    return exif;
+  } catch {
+    return {};
+  }
+}
+
 function uploadToOSS(
   signedUrl: string,
   file: File,
@@ -47,7 +150,7 @@ function uploadToOSS(
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      else reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
     };
     xhr.onerror = () => reject(new Error("Network error during upload"));
     xhr.send(file);
@@ -74,7 +177,10 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
 
       try {
         setState("reading");
-        const dims = await readImageDimensions(file);
+        const [dims, exif] = await Promise.all([
+          readImageDimensions(file),
+          readExif(file),
+        ]);
         const previewUrl = URL.createObjectURL(file);
         setPreview(previewUrl);
 
@@ -101,6 +207,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
           thumbnail: thumbnailUrl,
           width: dims.width,
           height: dims.height,
+          exif,
         });
       } catch (err) {
         setState("error");
@@ -138,7 +245,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
 
   const statusLabel =
     state === "reading"
-      ? "Reading image..."
+      ? "Reading image & EXIF..."
       : state === "signing"
         ? "Preparing upload..."
         : state === "uploading"
@@ -176,9 +283,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
         />
 
         {preview && (state === "uploading" || state === "done") ? (
-          <div
-            className="w-full max-h-48 rounded overflow-hidden bg-black/20 flex items-center justify-center"
-          >
+          <div className="w-full max-h-48 rounded overflow-hidden bg-black/20 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
@@ -210,7 +315,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
               Drag & drop an image here, or click to browse
             </p>
             <p className="text-xs text-neutral-500 mt-1">
-              JPG, PNG, WebP supported
+              JPG, PNG, WebP supported &middot; EXIF auto-read
             </p>
           </div>
         )}
@@ -225,9 +330,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
         )}
       </div>
 
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       {(state === "done" || state === "error") && (
         <button

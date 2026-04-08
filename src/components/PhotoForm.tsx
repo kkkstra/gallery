@@ -101,14 +101,45 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = (result: UploadResult) => {
+    const { exif } = result;
+
+    // Try to match EXIF camera/lens to existing equipment entries
+    let matchedCameraId: number | null = null;
+    let matchedLensId: number | null = null;
+    if (exif.camera) {
+      const cam = exif.camera.toLowerCase();
+      const match = camerasList.find(
+        (c) => cam.includes(c.model.toLowerCase()) || `${c.brand} ${c.model}`.toLowerCase() === cam,
+      );
+      if (match) matchedCameraId = match.id;
+    }
+    if (exif.lens) {
+      const l = exif.lens.toLowerCase();
+      const match = lensesList.find(
+        (le) => l.includes(le.model.toLowerCase()) || `${le.brand} ${le.model}`.toLowerCase() === l,
+      );
+      if (match) matchedLensId = match.id;
+    }
+
     setForm((prev) => ({
       ...prev,
       src: result.src,
       thumbnail: result.thumbnail,
       width: result.width,
       height: result.height,
+      cameraId: matchedCameraId ?? prev.cameraId,
+      lensId: matchedLensId ?? prev.lensId,
+      aperture: exif.aperture || prev.aperture,
+      shutterSpeed: exif.shutterSpeed || prev.shutterSpeed,
+      iso: exif.iso || prev.iso,
+      focalLength: exif.focalLength || prev.focalLength,
+      takenAt: exif.takenAt || prev.takenAt,
+      location: exif.location || prev.location,
     }));
     setUploaded(true);
+    if (exif.aperture || exif.shutterSpeed || exif.iso || exif.camera || exif.lens) {
+      setShowExif(true);
+    }
   };
 
   const clearUpload = () => {
