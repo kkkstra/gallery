@@ -50,6 +50,7 @@ export default function GalleryPage() {
   const [sortKey, setSortKey] = useState<SortKey>("taken-desc");
   const [cameraFilter, setCameraFilter] = useState<string | null>(null);
   const [lensFilter, setLensFilter] = useState<string | null>(null);
+  const [locationFilter, setLocationFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,8 +96,12 @@ export default function GalleryPage() {
     () => [...new Set(photos.map((p) => p.lens).filter(Boolean))] as string[],
     [photos],
   );
+  const uniqueLocations = useMemo(
+    () => [...new Set(photos.map((p) => p.location).filter(Boolean))] as string[],
+    [photos],
+  );
 
-  const activeFilterCount = [cameraFilter, lensFilter].filter(Boolean).length;
+  const activeFilterCount = [cameraFilter, lensFilter, locationFilter].filter(Boolean).length;
 
   const filtered = useMemo(() => {
     let result = photos;
@@ -108,6 +113,9 @@ export default function GalleryPage() {
     }
     if (lensFilter) {
       result = result.filter((p) => p.lens === lensFilter);
+    }
+    if (locationFilter) {
+      result = result.filter((p) => p.location === locationFilter);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -121,12 +129,13 @@ export default function GalleryPage() {
       );
     }
     return sortPhotos(result, sortKey);
-  }, [activeCategory, cameraFilter, lensFilter, searchQuery, photos, sortKey]);
+  }, [activeCategory, cameraFilter, lensFilter, locationFilter, searchQuery, photos, sortKey]);
 
   const clearAllFilters = () => {
     setActiveCategory(null);
     setCameraFilter(null);
     setLensFilter(null);
+    setLocationFilter(null);
     setSearchQuery("");
     setSortKey("taken-desc");
   };
@@ -199,7 +208,7 @@ export default function GalleryPage() {
         </select>
 
         {/* Filter toggle */}
-        {(uniqueCameras.length > 0 || uniqueLenses.length > 0) && (
+        {(uniqueCameras.length > 0 || uniqueLenses.length > 0 || uniqueLocations.length > 0) && (
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
@@ -224,46 +233,63 @@ export default function GalleryPage() {
 
       {/* Expanded filter panel */}
       {showFilters && (
-        <div className="mb-6 flex flex-wrap items-end justify-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 max-w-xl mx-auto">
-          {uniqueCameras.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-[var(--text-faint)] tracking-wider uppercase">Camera</label>
-              <select
-                value={cameraFilter || ""}
-                onChange={(e) => setCameraFilter(e.target.value || null)}
-                className={selectClass}
+        <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 max-w-2xl mx-auto">
+          <div className="flex flex-wrap items-end gap-4">
+            {uniqueCameras.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[var(--text-faint)] tracking-wider uppercase">Camera</label>
+                <select
+                  value={cameraFilter || ""}
+                  onChange={(e) => setCameraFilter(e.target.value || null)}
+                  className={selectClass}
+                >
+                  <option value="">All Cameras</option>
+                  {uniqueCameras.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {uniqueLenses.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[var(--text-faint)] tracking-wider uppercase">Lens</label>
+                <select
+                  value={lensFilter || ""}
+                  onChange={(e) => setLensFilter(e.target.value || null)}
+                  className={selectClass}
+                >
+                  <option value="">All Lenses</option>
+                  {uniqueLenses.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {uniqueLocations.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[var(--text-faint)] tracking-wider uppercase">Location</label>
+                <select
+                  value={locationFilter || ""}
+                  onChange={(e) => setLocationFilter(e.target.value || null)}
+                  className={selectClass}
+                >
+                  <option value="">All Locations</option>
+                  {uniqueLocations.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={() => { setCameraFilter(null); setLensFilter(null); setLocationFilter(null); }}
+                className="text-xs text-[var(--text-faint)] hover:text-[var(--text)] transition-colors underline underline-offset-2 pb-2.5"
               >
-                <option value="">All Cameras</option>
-                {uniqueCameras.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          {uniqueLenses.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-[var(--text-faint)] tracking-wider uppercase">Lens</label>
-              <select
-                value={lensFilter || ""}
-                onChange={(e) => setLensFilter(e.target.value || null)}
-                className={selectClass}
-              >
-                <option value="">All Lenses</option>
-                {uniqueLenses.map((l) => (
-                  <option key={l} value={l}>{l}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={() => { setCameraFilter(null); setLensFilter(null); }}
-              className="text-xs text-[var(--text-faint)] hover:text-[var(--text)] transition-colors underline underline-offset-2 pb-2.5"
-            >
-              Clear filters
-            </button>
-          )}
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
       )}
 
