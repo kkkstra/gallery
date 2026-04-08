@@ -5,18 +5,61 @@
 }
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --bg: #0a0a0a;
+  --bg-secondary: #000;
+  --text: #ededed;
+  --text-muted: #a3a3a3;
+  --text-faint: #737373;
+  --border: rgba(255, 255, 255, 0.1);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --header-bg: rgba(0, 0, 0, 0.8);
+  --selection-bg: rgba(255, 255, 255, 0.2);
+  --scrollbar: rgba(255, 255, 255, 0.15);
+  --scrollbar-hover: rgba(255, 255, 255, 0.3);
+  --btn-active-bg: rgba(255, 255, 255, 0.1);
+  --prose-text: #d4d4d4;
+  --prose-heading: #fff;
+  --prose-link: #fff;
+  --prose-strong: #fff;
+  --prose-quote: #a3a3a3;
+  --prose-border: rgba(255, 255, 255, 0.1);
+  --prose-code-bg: rgba(255, 255, 255, 0.1);
+  --prose-pre-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] {
+  --bg: #fafafa;
+  --bg-secondary: #fff;
+  --text: #171717;
+  --text-muted: #525252;
+  --text-faint: #a3a3a3;
+  --border: rgba(0, 0, 0, 0.1);
+  --surface: rgba(0, 0, 0, 0.03);
+  --surface-hover: rgba(0, 0, 0, 0.06);
+  --header-bg: rgba(255, 255, 255, 0.85);
+  --selection-bg: rgba(0, 0, 0, 0.15);
+  --scrollbar: rgba(0, 0, 0, 0.15);
+  --scrollbar-hover: rgba(0, 0, 0, 0.3);
+  --btn-active-bg: rgba(0, 0, 0, 0.08);
+  --prose-text: #404040;
+  --prose-heading: #171717;
+  --prose-link: #171717;
+  --prose-strong: #171717;
+  --prose-quote: #737373;
+  --prose-border: rgba(0, 0, 0, 0.1);
+  --prose-code-bg: rgba(0, 0, 0, 0.06);
+  --prose-pre-bg: rgba(0, 0, 0, 0.03);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: var(--selection-bg);
 }
 
 ::-webkit-scrollbar {
@@ -28,103 +71,105 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-hover);
 }
 
-.prose-dark {
-  color: #d4d4d4;
+/* Prose (Markdown) */
+.prose-styled {
+  color: var(--prose-text);
   line-height: 1.8;
 }
 
-.prose-dark h1,
-.prose-dark h2,
-.prose-dark h3,
-.prose-dark h4 {
-  color: #fff;
+.prose-styled h1,
+.prose-styled h2,
+.prose-styled h3,
+.prose-styled h4 {
+  color: var(--prose-heading);
   font-weight: 300;
   letter-spacing: 0.05em;
   margin-top: 2em;
   margin-bottom: 0.75em;
 }
 
-.prose-dark h1 { font-size: 1.875rem; }
-.prose-dark h2 { font-size: 1.25rem; padding-top: 1em; border-top: 1px solid rgba(255,255,255,0.1); }
-.prose-dark h3 { font-size: 1.1rem; }
+.prose-styled h1 { font-size: 1.875rem; }
+.prose-styled h2 { font-size: 1.25rem; padding-top: 1em; border-top: 1px solid var(--prose-border); }
+.prose-styled h3 { font-size: 1.1rem; }
 
-.prose-dark p {
-  margin-bottom: 1em;
-}
+.prose-styled p { margin-bottom: 1em; }
 
-.prose-dark a {
-  color: #fff;
+.prose-styled a {
+  color: var(--prose-link);
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: opacity 0.2s;
 }
 
-.prose-dark a:hover {
-  opacity: 0.7;
-}
+.prose-styled a:hover { opacity: 0.7; }
 
-.prose-dark ul,
-.prose-dark ol {
+.prose-styled ul,
+.prose-styled ol {
   padding-left: 1.5em;
   margin-bottom: 1em;
 }
 
-.prose-dark ul { list-style-type: disc; }
-.prose-dark ol { list-style-type: decimal; }
+.prose-styled ul { list-style-type: disc; }
+.prose-styled ol { list-style-type: decimal; }
+.prose-styled li { margin-bottom: 0.35em; }
+.prose-styled strong { color: var(--prose-strong); font-weight: 500; }
 
-.prose-dark li {
-  margin-bottom: 0.35em;
-}
-
-.prose-dark strong {
-  color: #fff;
-  font-weight: 500;
-}
-
-.prose-dark blockquote {
-  border-left: 2px solid rgba(255,255,255,0.2);
+.prose-styled blockquote {
+  border-left: 2px solid var(--prose-border);
   padding-left: 1em;
   margin-left: 0;
-  color: #a3a3a3;
+  color: var(--prose-quote);
   font-style: italic;
 }
 
-.prose-dark code {
-  background: rgba(255,255,255,0.1);
+.prose-styled code {
+  background: var(--prose-code-bg);
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
 }
 
-.prose-dark pre {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+.prose-styled pre {
+  background: var(--prose-pre-bg);
+  border: 1px solid var(--prose-border);
   border-radius: 8px;
   padding: 1em;
   overflow-x: auto;
   margin-bottom: 1em;
 }
 
-.prose-dark pre code {
-  background: transparent;
-  padding: 0;
-}
+.prose-styled pre code { background: transparent; padding: 0; }
+.prose-styled hr { border: none; border-top: 1px solid var(--prose-border); margin: 2em 0; }
+.prose-styled img { border-radius: 8px; max-width: 100%; }
 
-.prose-dark hr {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  margin: 2em 0;
+/* Keep old class as alias for admin panel (always dark) */
+.prose-dark {
+  color: #d4d4d4;
+  line-height: 1.8;
 }
-
-.prose-dark img {
-  border-radius: 8px;
-  max-width: 100%;
-}
+.prose-dark h1, .prose-dark h2, .prose-dark h3, .prose-dark h4 { color: #fff; font-weight: 300; letter-spacing: 0.05em; margin-top: 2em; margin-bottom: 0.75em; }
+.prose-dark h1 { font-size: 1.875rem; }
+.prose-dark h2 { font-size: 1.25rem; padding-top: 1em; border-top: 1px solid rgba(255,255,255,0.1); }
+.prose-dark h3 { font-size: 1.1rem; }
+.prose-dark p { margin-bottom: 1em; }
+.prose-dark a { color: #fff; text-decoration: underline; text-underline-offset: 2px; transition: opacity 0.2s; }
+.prose-dark a:hover { opacity: 0.7; }
+.prose-dark ul, .prose-dark ol { padding-left: 1.5em; margin-bottom: 1em; }
+.prose-dark ul { list-style-type: disc; }
+.prose-dark ol { list-style-type: decimal; }
+.prose-dark li { margin-bottom: 0.35em; }
+.prose-dark strong { color: #fff; font-weight: 500; }
+.prose-dark blockquote { border-left: 2px solid rgba(255,255,255,0.2); padding-left: 1em; margin-left: 0; color: #a3a3a3; font-style: italic; }
+.prose-dark code { background: rgba(255,255,255,0.1); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+.prose-dark pre { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 1em; overflow-x: auto; margin-bottom: 1em; }
+.prose-dark pre code { background: transparent; padding: 0; }
+.prose-dark hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 2em 0; }
+.prose-dark img { border-radius: 8px; max-width: 100%; }

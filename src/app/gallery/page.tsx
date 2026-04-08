@@ -67,7 +67,7 @@ export default function GalleryPage() {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="flex items-center justify-center py-20">
-          <p className="text-neutral-500">Loading gallery...</p>
+          <p className="text-[var(--text-faint)]">Loading gallery...</p>
         </div>
       </section>
     );
@@ -76,7 +76,7 @@ export default function GalleryPage() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
       <div className="mb-16 text-center">
-        <p className="text-sm tracking-[0.3em] uppercase text-neutral-500">
+        <p className="text-sm tracking-[0.3em] uppercase text-[var(--text-faint)]">
           Browse Collection
         </p>
         <h1 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide">
@@ -96,7 +96,7 @@ export default function GalleryPage() {
       <div className="mb-8 max-w-md mx-auto">
         <div className="relative">
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500"
+            className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-faint)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -109,11 +109,11 @@ export default function GalleryPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search photos..."
-            className="w-full rounded-full border border-white/10 bg-white/5 pl-11 pr-4 py-2.5 text-sm text-white placeholder-neutral-600 outline-none focus:border-white/30 transition-colors"
+            className="w-full rounded-full border border-[var(--border)] bg-[var(--surface)] pl-11 pr-4 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-faint)] outline-none focus:border-[var(--text-muted)] transition-colors"
           />
         </div>
         {searchQuery.trim() && (
-          <p className="mt-3 text-center text-sm text-neutral-500">
+          <p className="mt-3 text-center text-sm text-[var(--text-faint)]">
             {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{searchQuery}&rdquo;
           </p>
         )}

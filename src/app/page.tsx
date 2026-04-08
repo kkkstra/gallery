@@ -29,7 +29,7 @@ export default async function Home() {
   if (!heroPhoto) {
     return (
       <section className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-neutral-500">No photos yet. Add some in the admin panel.</p>
+        <p className="text-[var(--text-faint)]">No photos yet. Add some in the admin panel.</p>
       </section>
     );
   }
@@ -46,10 +46,10 @@ export default async function Home() {
 
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-16 text-center">
-          <p className="text-sm tracking-[0.3em] uppercase text-neutral-500">
+          <p className="text-sm tracking-[0.3em] uppercase text-[var(--text-faint)]">
             Selected Works
           </p>
-          <h2 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide">
+          <h2 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide text-[var(--text)]">
             Featured
           </h2>
         </div>
@@ -84,7 +84,7 @@ export default async function Home() {
         <div className="mt-16 text-center">
           <Link
             href="/gallery"
-            className="inline-flex items-center gap-2 border border-white/30 px-8 py-3 text-sm tracking-widest uppercase text-white transition-all hover:bg-white hover:text-black"
+            className="inline-flex items-center gap-2 border border-[var(--border)] px-8 py-3 text-sm tracking-widest uppercase text-[var(--text)] transition-all hover:bg-[var(--text)] hover:text-[var(--bg)]"
           >
             View All Works
             <svg

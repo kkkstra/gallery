@@ -72,7 +72,7 @@ export default function CollectionDetailPage() {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="flex items-center justify-center py-20">
-          <p className="text-neutral-500">Loading...</p>
+          <p className="text-[var(--text-faint)]">Loading...</p>
         </div>
       </section>
     );
@@ -82,7 +82,7 @@ export default function CollectionDetailPage() {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="text-center py-20">
-          <p className="text-neutral-500">Collection not found.</p>
+          <p className="text-[var(--text-faint)]">Collection not found.</p>
         </div>
       </section>
     );
@@ -108,7 +108,7 @@ export default function CollectionDetailPage() {
         ) : (
           <div className="h-full bg-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/40 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-black/40 to-black/20" />
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-10">
           <div className="mx-auto max-w-7xl">
             <p className="text-sm tracking-[0.3em] uppercase text-white/60 mb-2">Collection</p>
@@ -123,7 +123,7 @@ export default function CollectionDetailPage() {
       <section className="mx-auto max-w-7xl px-6 py-12">
         {descriptionHtml && (
           <div
-            className="prose-dark max-w-2xl mb-12"
+            className="prose-styled max-w-2xl mb-12"
             dangerouslySetInnerHTML={{ __html: descriptionHtml }}
           />
         )}

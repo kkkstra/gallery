@@ -17,8 +17,8 @@ export default function CategoryFilter({
         onClick={() => onChange(null)}
         className={`px-4 py-2 text-xs tracking-widest uppercase transition-all border ${
           active === null
-            ? "border-white text-white"
-            : "border-white/20 text-neutral-400 hover:border-white/50 hover:text-white"
+            ? "border-[var(--text)] text-[var(--text)]"
+            : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text)]"
         }`}
       >
         All
@@ -29,8 +29,8 @@ export default function CategoryFilter({
           onClick={() => onChange(cat)}
           className={`px-4 py-2 text-xs tracking-widest uppercase transition-all border ${
             active === cat
-              ? "border-white text-white"
-              : "border-white/20 text-neutral-400 hover:border-white/50 hover:text-white"
+              ? "border-[var(--text)] text-[var(--text)]"
+              : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text)]"
           }`}
         >
           {cat}

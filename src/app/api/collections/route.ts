@@ -16,8 +16,8 @@ export async function GET() {
       coverPhotoId: collections.coverPhotoId,
       sortOrder: collections.sortOrder,
       createdAt: collections.createdAt,
-      coverSrc: photos.thumbnail,
-      coverSrcFull: photos.src,
+      coverSrc: photos.src,
+      coverThumbnail: photos.thumbnail,
       photoCount: sql<number>`(SELECT COUNT(*) FROM collection_photos WHERE collection_id = ${collections.id})`,
     })
     .from(collections)
@@ -26,7 +26,7 @@ export async function GET() {
 
   const results = rows.map((r) => ({
     ...r,
-    coverSrc: r.coverSrc || r.coverSrcFull || null,
+    coverSrc: r.coverSrc || r.coverThumbnail || null,
   }));
 
   return NextResponse.json(results);

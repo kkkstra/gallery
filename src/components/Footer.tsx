@@ -28,8 +28,8 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="border-t border-white/10 bg-black py-10">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 text-neutral-500 text-sm">
+    <footer className="border-t border-[var(--border)] bg-[var(--bg-secondary)] py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 text-[var(--text-faint)] text-sm">
         {links.length > 0 && (
           <div className="flex flex-wrap justify-center gap-6">
             {links.map((link) => (
@@ -38,7 +38,7 @@ export default function Footer() {
                 href={link.url}
                 target={link.platform === "email" ? undefined : "_blank"}
                 rel={link.platform === "email" ? undefined : "noopener noreferrer"}
-                className="hover:text-white transition-colors"
+                className="hover:text-[var(--text)] transition-colors"
               >
                 {link.label}
               </a>

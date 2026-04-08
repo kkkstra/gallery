@@ -21,10 +21,10 @@ export default async function AboutPage() {
   return (
     <section className="mx-auto max-w-4xl px-6 py-16">
       <div className="mb-16 text-center">
-        <p className="text-sm tracking-[0.3em] uppercase text-neutral-500">
+        <p className="text-sm tracking-[0.3em] uppercase text-[var(--text-faint)]">
           The Photographer
         </p>
-        <h1 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide">
+        <h1 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide text-[var(--text)]">
           About
         </h1>
       </div>
@@ -43,7 +43,7 @@ export default async function AboutPage() {
         )}
 
         <div
-          className="prose-dark"
+          className="prose-styled"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

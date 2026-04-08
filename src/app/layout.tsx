@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ThemeProvider from "@/components/ThemeProvider";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/lib/db/schema";
 import "./globals.css";
@@ -26,17 +27,24 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t==="light"||(t!=="dark"&&t!=="light"&&window.matchMedia("(prefers-color-scheme:light)").matches);if(d)document.documentElement.setAttribute("data-theme","light")}catch(e){}})()`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white font-sans">
-        <Header />
-        <main className="flex-1 pt-[73px]">{children}</main>
-        <Footer />
+    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full flex flex-col font-sans">
+        <ThemeProvider>
+          <Header />
+          <main className="flex-1 pt-[73px]">{children}</main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );
