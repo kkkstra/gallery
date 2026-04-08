@@ -6,6 +6,19 @@ import { marked } from "marked";
 
 type Settings = Record<string, string>;
 
+interface SocialLink {
+  id?: number;
+  platform: string;
+  label: string;
+  url: string;
+  sortOrder: number;
+}
+
+const PLATFORMS = [
+  "instagram", "twitter", "facebook", "youtube", "tiktok",
+  "github", "email", "website", "custom",
+];
+
 const SETTING_SECTIONS = [
   {
     title: "Site Info",
@@ -24,14 +37,6 @@ const SETTING_SECTIONS = [
     ],
   },
   {
-    title: "Social Links",
-    fields: [
-      { key: "social_instagram", label: "Instagram URL", type: "url" },
-      { key: "social_twitter", label: "Twitter URL", type: "url" },
-      { key: "social_email", label: "Email", type: "email" },
-    ],
-  },
-  {
     title: "Footer",
     fields: [
       { key: "footer_copyright", label: "Copyright Text", type: "text" },
@@ -41,18 +46,21 @@ const SETTING_SECTIONS = [
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Settings>({});
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((data) => {
-        setSettings(data);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch("/api/settings").then((r) => r.json()),
+      fetch("/api/social-links").then((r) => r.json()),
+    ]).then(([settingsData, linksData]) => {
+      setSettings(settingsData);
+      setSocialLinks(linksData);
+      setLoading(false);
+    });
   }, []);
 
   const handleChange = (key: string, value: string) => {
@@ -60,13 +68,42 @@ export default function AdminSettingsPage() {
     setSaved(false);
   };
 
+  const addSocialLink = () => {
+    setSocialLinks((prev) => [
+      ...prev,
+      { platform: "custom", label: "", url: "", sortOrder: prev.length },
+    ]);
+    setSaved(false);
+  };
+
+  const updateSocialLink = (index: number, field: keyof SocialLink, value: string | number) => {
+    setSocialLinks((prev) =>
+      prev.map((link, i) => (i === index ? { ...link, [field]: value } : link)),
+    );
+    setSaved(false);
+  };
+
+  const removeSocialLink = (index: number) => {
+    setSocialLinks((prev) => prev.filter((_, i) => i !== index));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
+    await Promise.all([
+      fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      }),
+      fetch("/api/social-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          socialLinks.map((link, i) => ({ ...link, sortOrder: i })),
+        ),
+      }),
+    ]);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -123,7 +160,6 @@ export default function AdminSettingsPage() {
           <h2 className="text-sm font-medium uppercase tracking-widest text-neutral-400 mb-4 pb-2 border-b border-white/10">
             About Page
           </h2>
-
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-neutral-400 mb-1.5">
@@ -132,9 +168,7 @@ export default function AdminSettingsPage() {
               <input
                 type="url"
                 value={settings.about_portrait_url || ""}
-                onChange={(e) =>
-                  handleChange("about_portrait_url", e.target.value)
-                }
+                onChange={(e) => handleChange("about_portrait_url", e.target.value)}
                 className={inputClass}
               />
               {settings.about_portrait_url && (
@@ -160,9 +194,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={() => setPreviewMode(false)}
                     className={`px-3 py-1 text-xs transition-colors ${
-                      !previewMode
-                        ? "bg-white/10 text-white"
-                        : "text-neutral-500 hover:text-white"
+                      !previewMode ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
                     }`}
                   >
                     Edit
@@ -170,9 +202,7 @@ export default function AdminSettingsPage() {
                   <button
                     onClick={() => setPreviewMode(true)}
                     className={`px-3 py-1 text-xs transition-colors ${
-                      previewMode
-                        ? "bg-white/10 text-white"
-                        : "text-neutral-500 hover:text-white"
+                      previewMode ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
                     }`}
                   >
                     Preview
@@ -184,23 +214,83 @@ export default function AdminSettingsPage() {
                 <div
                   className="prose-dark min-h-[300px] rounded-lg border border-white/10 bg-white/5 p-6"
                   dangerouslySetInnerHTML={{
-                    __html: marked.parse(settings.about_content || "", {
-                      async: false,
-                    }) as string,
+                    __html: marked.parse(settings.about_content || "", { async: false }) as string,
                   }}
                 />
               ) : (
                 <textarea
                   value={settings.about_content || ""}
-                  onChange={(e) =>
-                    handleChange("about_content", e.target.value)
-                  }
+                  onChange={(e) => handleChange("about_content", e.target.value)}
                   rows={16}
                   className={`${inputClass} font-mono text-sm leading-relaxed`}
                   placeholder="Write your about page content in Markdown or HTML..."
                 />
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Dynamic Social Links */}
+        <div>
+          <h2 className="text-sm font-medium uppercase tracking-widest text-neutral-400 mb-4 pb-2 border-b border-white/10">
+            Social Links
+          </h2>
+          <div className="space-y-3">
+            {socialLinks.map((link, index) => (
+              <div key={index} className="flex items-start gap-2">
+                <select
+                  value={link.platform}
+                  onChange={(e) => {
+                    updateSocialLink(index, "platform", e.target.value);
+                    if (!link.label) {
+                      updateSocialLink(
+                        index,
+                        "label",
+                        e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1),
+                      );
+                    }
+                  }}
+                  className="w-32 shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/30"
+                >
+                  {PLATFORMS.map((p) => (
+                    <option key={p} value={p}>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={link.label}
+                  onChange={(e) => updateSocialLink(index, "label", e.target.value)}
+                  placeholder="Label"
+                  className="w-32 shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-neutral-600 outline-none focus:border-white/30"
+                />
+                <input
+                  type="text"
+                  value={link.url}
+                  onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                  placeholder="URL or mailto:..."
+                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-neutral-600 outline-none focus:border-white/30"
+                />
+                <button
+                  onClick={() => removeSocialLink(index)}
+                  className="shrink-0 rounded-lg border border-red-500/20 p-2.5 text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addSocialLink}
+              className="flex items-center gap-2 rounded-lg border border-dashed border-white/20 px-4 py-2 text-sm text-neutral-400 hover:border-white/40 hover:text-white transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add Link
+            </button>
           </div>
         </div>
       </div>

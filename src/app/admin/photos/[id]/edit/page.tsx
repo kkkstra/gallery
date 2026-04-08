@@ -17,6 +17,14 @@ export default function EditPhotoPage() {
     height: number;
     featured: boolean;
     sortOrder: number;
+    cameraId: number | null;
+    lensId: number | null;
+    aperture: string;
+    shutterSpeed: string;
+    iso: string;
+    focalLength: string;
+    takenAt: string;
+    location: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,11 +38,19 @@ export default function EditPhotoPage() {
           thumbnail: data.thumbnail || "",
           title: data.title,
           description: data.description || "",
-          categorySlug: data.category_slug,
+          categorySlug: data.categorySlug,
           width: data.width,
           height: data.height,
           featured: !!data.featured,
-          sortOrder: data.sort_order || 0,
+          sortOrder: data.sortOrder || 0,
+          cameraId: data.cameraId || null,
+          lensId: data.lensId || null,
+          aperture: data.aperture || "",
+          shutterSpeed: data.shutterSpeed || "",
+          iso: data.iso || "",
+          focalLength: data.focalLength || "",
+          takenAt: data.takenAt || "",
+          location: data.location || "",
         });
         setLoading(false);
       });
@@ -51,12 +67,8 @@ export default function EditPhotoPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-light tracking-wider text-white">
-          Edit Photo
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Update photo details
-        </p>
+        <h1 className="text-2xl font-light tracking-wider text-white">Edit Photo</h1>
+        <p className="mt-1 text-sm text-neutral-500">Update photo details</p>
       </div>
       {photo && <PhotoForm initialData={photo} />}
     </div>

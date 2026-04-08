@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { photos, cameras, lenses } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { collectionPhotos, photos, cameras, lenses } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { verifyTokenFromRequest } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
   const rows = await db
     .select({
+      cpId: collectionPhotos.id,
+      cpSortOrder: collectionPhotos.sortOrder,
       id: photos.id,
       src: photos.src,
       thumbnail: photos.thumbnail,
@@ -20,8 +25,6 @@ export async function GET(
       width: photos.width,
       height: photos.height,
       featured: photos.featured,
-      sortOrder: photos.sortOrder,
-      createdAt: photos.createdAt,
       cameraId: photos.cameraId,
       lensId: photos.lensId,
       aperture: photos.aperture,
@@ -35,24 +38,23 @@ export async function GET(
       lensBrand: lenses.brand,
       lensModel: lenses.model,
     })
-    .from(photos)
+    .from(collectionPhotos)
+    .innerJoin(photos, eq(collectionPhotos.photoId, photos.id))
     .leftJoin(cameras, eq(photos.cameraId, cameras.id))
     .leftJoin(lenses, eq(photos.lensId, lenses.id))
-    .where(eq(photos.id, Number(id)));
+    .where(eq(collectionPhotos.collectionId, Number(id)))
+    .orderBy(collectionPhotos.sortOrder);
 
-  if (rows.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const r = rows[0];
-  return NextResponse.json({
+  const results = rows.map((r) => ({
     ...r,
     cameraName: r.cameraBrand && r.cameraModel ? `${r.cameraBrand} ${r.cameraModel}` : null,
     lensName: r.lensBrand && r.lensModel ? `${r.lensBrand} ${r.lensModel}` : null,
-  });
+  }));
+
+  return NextResponse.json(results);
 }
 
-export async function PUT(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -62,36 +64,31 @@ export async function PUT(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body: { photoIds: number[] } = await request.json();
 
-  const result = await db
-    .update(photos)
-    .set({
-      src: body.src,
-      thumbnail: body.thumbnail || null,
-      title: body.title,
-      description: body.description || null,
-      categorySlug: body.categorySlug,
-      width: body.width,
-      height: body.height,
-      featured: body.featured ?? false,
-      sortOrder: body.sortOrder ?? 0,
-      cameraId: body.cameraId || null,
-      lensId: body.lensId || null,
-      aperture: body.aperture || null,
-      shutterSpeed: body.shutterSpeed || null,
-      iso: body.iso || null,
-      focalLength: body.focalLength || null,
-      takenAt: body.takenAt || null,
-      location: body.location || null,
-    })
-    .where(eq(photos.id, Number(id)))
-    .returning();
+  const existing = await db
+    .select()
+    .from(collectionPhotos)
+    .where(eq(collectionPhotos.collectionId, Number(id)));
 
-  if (result.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  let maxSort = existing.reduce(
+    (max, cp) => Math.max(max, cp.sortOrder ?? 0),
+    -1,
+  );
+
+  for (const photoId of body.photoIds) {
+    const alreadyIn = existing.some((cp) => cp.photoId === photoId);
+    if (!alreadyIn) {
+      maxSort++;
+      await db.insert(collectionPhotos).values({
+        collectionId: Number(id),
+        photoId,
+        sortOrder: maxSort,
+      });
+    }
   }
-  return NextResponse.json(result[0]);
+
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
@@ -104,13 +101,19 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const result = await db
-    .delete(photos)
-    .where(eq(photos.id, Number(id)))
-    .returning();
+  const { searchParams } = new URL(request.url);
+  const photoId = searchParams.get("photoId");
 
-  if (result.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (photoId) {
+    await db
+      .delete(collectionPhotos)
+      .where(
+        and(
+          eq(collectionPhotos.collectionId, Number(id)),
+          eq(collectionPhotos.photoId, Number(photoId)),
+        ),
+      );
   }
+
   return NextResponse.json({ ok: true });
 }

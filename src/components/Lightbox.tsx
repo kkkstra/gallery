@@ -12,6 +12,16 @@ interface LightboxProps {
   onNavigate: (index: number) => void;
 }
 
+function ExifItem({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[10px] uppercase tracking-wider text-white/40">{label}</span>
+      <span className="text-xs text-white/80">{value}</span>
+    </div>
+  );
+}
+
 export default function Lightbox({
   photos,
   currentIndex,
@@ -20,7 +30,13 @@ export default function Lightbox({
 }: LightboxProps) {
   const photo = photos[currentIndex];
   const [direction, setDirection] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const hasExif = !!(
+    photo.camera || photo.lens || photo.aperture || photo.shutterSpeed ||
+    photo.iso || photo.focalLength || photo.takenAt || photo.location
+  );
 
   const goNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
@@ -41,6 +57,7 @@ export default function Lightbox({
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "i") setShowDetails((v) => !v);
     };
     window.addEventListener("keydown", handleKey);
     document.body.style.overflow = "hidden";
@@ -51,10 +68,7 @@ export default function Lightbox({
   }, [onClose, goNext, goPrev]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    };
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -96,14 +110,29 @@ export default function Lightbox({
         </svg>
       </button>
 
-      {/* Previous button */}
+      {/* Info toggle */}
+      {hasExif && (
+        <button
+          className={`absolute top-5 right-16 z-10 p-2 transition-colors ${
+            showDetails ? "text-white" : "text-white/50 hover:text-white"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails((v) => !v);
+          }}
+          aria-label="Toggle details"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+          </svg>
+        </button>
+      )}
+
+      {/* Previous */}
       {currentIndex > 0 && (
         <button
           className="absolute left-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            goPrev();
-          }}
+          onClick={(e) => { e.stopPropagation(); goPrev(); }}
           aria-label="Previous photo"
         >
           <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -112,14 +141,11 @@ export default function Lightbox({
         </button>
       )}
 
-      {/* Next button */}
+      {/* Next */}
       {currentIndex < photos.length - 1 && (
         <button
           className="absolute right-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            goNext();
-          }}
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
           aria-label="Next photo"
         >
           <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -153,17 +179,43 @@ export default function Lightbox({
         </motion.div>
       </AnimatePresence>
 
-      {/* Caption */}
-      <div className="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
-        <h3 className="text-lg font-light tracking-wider text-white">
-          {photo.title}
-        </h3>
-        {photo.description && (
-          <p className="mt-1 text-sm text-white/60">{photo.description}</p>
-        )}
-        <p className="mt-2 text-xs text-white/40">
-          {currentIndex + 1} / {photos.length}
-        </p>
+      {/* Caption + EXIF */}
+      <div
+        className="absolute bottom-0 left-0 right-0 text-center pointer-events-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="pb-6 pt-12 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
+          <h3 className="text-lg font-light tracking-wider text-white">{photo.title}</h3>
+          {photo.description && (
+            <p className="mt-1 text-sm text-white/60">{photo.description}</p>
+          )}
+          <p className="mt-2 text-xs text-white/40">
+            {currentIndex + 1} / {photos.length}
+          </p>
+
+          <AnimatePresence>
+            {showDetails && hasExif && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 border-t border-white/10 pt-4 px-4">
+                  <ExifItem label="Camera" value={photo.camera} />
+                  <ExifItem label="Lens" value={photo.lens} />
+                  <ExifItem label="Aperture" value={photo.aperture} />
+                  <ExifItem label="Shutter" value={photo.shutterSpeed} />
+                  <ExifItem label="ISO" value={photo.iso} />
+                  <ExifItem label="Focal" value={photo.focalLength} />
+                  <ExifItem label="Date" value={photo.takenAt} />
+                  <ExifItem label="Location" value={photo.location} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );

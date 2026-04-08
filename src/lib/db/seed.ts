@@ -21,7 +21,6 @@ const client = createClient({
 const db = drizzle(client, { schema });
 
 async function seed() {
-  // Create tables
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +31,26 @@ async function seed() {
     CREATE TABLE IF NOT EXISTS site_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE TABLE IF NOT EXISTS social_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      label TEXT NOT NULL,
+      url TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS cameras (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand TEXT NOT NULL,
+      model TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS lenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand TEXT NOT NULL,
+      model TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS photos (
@@ -45,9 +64,53 @@ async function seed() {
       height INTEGER NOT NULL,
       featured INTEGER DEFAULT 0,
       sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      camera_id INTEGER REFERENCES cameras(id),
+      lens_id INTEGER REFERENCES lenses(id),
+      aperture TEXT,
+      shutter_speed TEXT,
+      iso TEXT,
+      focal_length TEXT,
+      taken_at TEXT,
+      location TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT,
+      cover_photo_id INTEGER REFERENCES photos(id),
+      sort_order INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS collection_photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL REFERENCES collections(id),
+      photo_id INTEGER NOT NULL REFERENCES photos(id),
+      sort_order INTEGER DEFAULT 0
+    );
   `);
+
+  // Migrate existing photos table: add new columns if missing
+  const alterStatements = [
+    "ALTER TABLE photos ADD COLUMN camera_id INTEGER REFERENCES cameras(id)",
+    "ALTER TABLE photos ADD COLUMN lens_id INTEGER REFERENCES lenses(id)",
+    "ALTER TABLE photos ADD COLUMN aperture TEXT",
+    "ALTER TABLE photos ADD COLUMN shutter_speed TEXT",
+    "ALTER TABLE photos ADD COLUMN iso TEXT",
+    "ALTER TABLE photos ADD COLUMN focal_length TEXT",
+    "ALTER TABLE photos ADD COLUMN taken_at TEXT",
+    "ALTER TABLE photos ADD COLUMN location TEXT",
+  ];
+  for (const stmt of alterStatements) {
+    try {
+      await client.execute(stmt);
+    } catch {
+      // Column already exists — ignore
+    }
+  }
 
   const seedCategories = [
     { name: "Landscape", slug: "landscape" },
@@ -110,12 +173,6 @@ With over a decade behind the lens, I specialize in landscape, street, and portr
 
 I believe every photograph is a conversation between the subject and the viewer. My goal is to create images that linger in your memory long after you've looked away.
 
-## Get in Touch
-
-- **Email** — [hello@example.com](mailto:hello@example.com)
-- **Instagram** — [@photographer](https://instagram.com)
-- **Twitter** — [@photographer](https://twitter.com)
-
 ## Available For
 
 - Commercial Projects
@@ -124,9 +181,6 @@ I believe every photograph is a conversation between the subject and the viewer.
 - Prints & Licensing
 - Workshops
 - Collaborations`,
-    social_instagram: "https://instagram.com",
-    social_twitter: "https://twitter.com",
-    social_email: "hello@example.com",
     footer_copyright: "Gallery. All rights reserved.",
   };
 
@@ -139,6 +193,22 @@ I believe every photograph is a conversation between the subject and the viewer.
     console.log(`  Inserted ${Object.keys(defaultSettings).length} settings`);
   } else {
     console.log(`Settings already seeded (${existingSettings.length} found)`);
+  }
+
+  const existingSocial = await db.select().from(schema.socialLinks);
+  if (existingSocial.length === 0) {
+    console.log("Seeding social links...");
+    const defaultLinks = [
+      { platform: "instagram", label: "Instagram", url: "https://instagram.com", sortOrder: 0 },
+      { platform: "twitter", label: "Twitter", url: "https://twitter.com", sortOrder: 1 },
+      { platform: "email", label: "Email", url: "mailto:hello@example.com", sortOrder: 2 },
+    ];
+    for (const link of defaultLinks) {
+      await db.insert(schema.socialLinks).values(link);
+    }
+    console.log(`  Inserted ${defaultLinks.length} social links`);
+  } else {
+    console.log(`Social links already seeded (${existingSocial.length} found)`);
   }
 
   console.log("Done!");

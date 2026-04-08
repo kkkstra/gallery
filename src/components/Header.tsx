@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/gallery", label: "Gallery" },
+  { href: "/collections", label: "Collections" },
   { href: "/about", label: "About" },
 ];
 
@@ -41,7 +42,7 @@ export default function Header() {
               <Link
                 href={link.href}
                 className={`text-sm tracking-widest uppercase transition-colors ${
-                  pathname === link.href
+                  (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
                     ? "text-white"
                     : "text-neutral-400 hover:text-white"
                 }`}
@@ -79,7 +80,7 @@ export default function Header() {
                 <Link
                   href={link.href}
                   className={`text-sm tracking-widest uppercase transition-colors ${
-                    pathname === link.href
+                    (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
                       ? "text-white"
                       : "text-neutral-400 hover:text-white"
                   }`}

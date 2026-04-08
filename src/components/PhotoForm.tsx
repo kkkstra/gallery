@@ -10,6 +10,12 @@ interface Category {
   slug: string;
 }
 
+interface Equipment {
+  id: number;
+  brand: string;
+  model: string;
+}
+
 interface PhotoFormProps {
   initialData?: {
     id?: number;
@@ -22,14 +28,27 @@ interface PhotoFormProps {
     height: number;
     featured: boolean;
     sortOrder: number;
+    cameraId: number | null;
+    lensId: number | null;
+    aperture: string;
+    shutterSpeed: string;
+    iso: string;
+    focalLength: string;
+    takenAt: string;
+    location: string;
   };
 }
 
 export default function PhotoForm({ initialData }: PhotoFormProps) {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [camerasList, setCamerasList] = useState<Equipment[]>([]);
+  const [lensesList, setLensesList] = useState<Equipment[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showExif, setShowExif] = useState(
+    !!(initialData?.cameraId || initialData?.lensId || initialData?.aperture),
+  );
 
   const [form, setForm] = useState({
     src: initialData?.src || "",
@@ -41,17 +60,29 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     height: initialData?.height || 1280,
     featured: initialData?.featured || false,
     sortOrder: initialData?.sortOrder || 0,
+    cameraId: initialData?.cameraId || null as number | null,
+    lensId: initialData?.lensId || null as number | null,
+    aperture: initialData?.aperture || "",
+    shutterSpeed: initialData?.shutterSpeed || "",
+    iso: initialData?.iso || "",
+    focalLength: initialData?.focalLength || "",
+    takenAt: initialData?.takenAt || "",
+    location: initialData?.location || "",
   });
 
   useEffect(() => {
-    fetch("/api/categories")
-      .then((r) => r.json())
-      .then((data) => {
-        setCategories(data);
-        if (!form.categorySlug && data.length > 0) {
-          setForm((prev) => ({ ...prev, categorySlug: data[0].slug }));
-        }
-      });
+    Promise.all([
+      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/cameras").then((r) => r.json()),
+      fetch("/api/lenses").then((r) => r.json()),
+    ]).then(([cats, cams, lens]) => {
+      setCategories(cats);
+      setCamerasList(cams);
+      setLensesList(lens);
+      if (!form.categorySlug && cats.length > 0) {
+        setForm((prev) => ({ ...prev, categorySlug: cats[0].slug }));
+      }
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,9 +92,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
 
     try {
       const isEdit = !!initialData?.id;
-      const url = isEdit
-        ? `/api/photos/${initialData.id}`
-        : "/api/photos";
+      const url = isEdit ? `/api/photos/${initialData.id}` : "/api/photos";
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -91,11 +120,8 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      {/* Image URL with preview */}
       <div>
-        <label className="block text-sm text-neutral-400 mb-1.5">
-          Image URL *
-        </label>
+        <label className="block text-sm text-neutral-400 mb-1.5">Image URL *</label>
         <input
           type="url"
           required
@@ -106,22 +132,13 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
         />
         {form.src && (
           <div className="mt-2 relative h-40 w-60 overflow-hidden rounded-lg bg-white/5">
-            <Image
-              src={form.src}
-              alt="Preview"
-              fill
-              className="object-cover"
-              sizes="240px"
-              unoptimized
-            />
+            <Image src={form.src} alt="Preview" fill className="object-cover" sizes="240px" unoptimized />
           </div>
         )}
       </div>
 
       <div>
-        <label className="block text-sm text-neutral-400 mb-1.5">
-          Thumbnail URL
-        </label>
+        <label className="block text-sm text-neutral-400 mb-1.5">Thumbnail URL</label>
         <input
           type="url"
           value={form.thumbnail}
@@ -132,9 +149,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm text-neutral-400 mb-1.5">
-          Title *
-        </label>
+        <label className="block text-sm text-neutral-400 mb-1.5">Title *</label>
         <input
           type="text"
           required
@@ -146,9 +161,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm text-neutral-400 mb-1.5">
-          Description
-        </label>
+        <label className="block text-sm text-neutral-400 mb-1.5">Description</label>
         <textarea
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -159,9 +172,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm text-neutral-400 mb-1.5">
-          Category *
-        </label>
+        <label className="block text-sm text-neutral-400 mb-1.5">Category *</label>
         <select
           required
           value={form.categorySlug}
@@ -169,18 +180,14 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
           className={inputClass}
         >
           {categories.map((cat) => (
-            <option key={cat.id} value={cat.slug}>
-              {cat.name}
-            </option>
+            <option key={cat.id} value={cat.slug}>{cat.name}</option>
           ))}
         </select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-neutral-400 mb-1.5">
-            Width (px) *
-          </label>
+          <label className="block text-sm text-neutral-400 mb-1.5">Width (px) *</label>
           <input
             type="number"
             required
@@ -191,9 +198,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm text-neutral-400 mb-1.5">
-            Height (px) *
-          </label>
+          <label className="block text-sm text-neutral-400 mb-1.5">Height (px) *</label>
           <input
             type="number"
             required
@@ -207,9 +212,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-neutral-400 mb-1.5">
-            Sort Order
-          </label>
+          <label className="block text-sm text-neutral-400 mb-1.5">Sort Order</label>
           <input
             type="number"
             value={form.sortOrder}
@@ -228,6 +231,135 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
             <span className="text-sm text-neutral-300">Featured on homepage</span>
           </label>
         </div>
+      </div>
+
+      {/* EXIF / Shooting Details */}
+      <div className="border border-white/10 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowExif(!showExif)}
+          className="flex items-center justify-between w-full px-4 py-3 text-sm text-neutral-400 hover:text-white transition-colors"
+        >
+          <span>Shooting Details</span>
+          <svg
+            className={`h-4 w-4 transition-transform ${showExif ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        {showExif && (
+          <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Camera</label>
+                <select
+                  value={form.cameraId || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, cameraId: e.target.value ? Number(e.target.value) : null })
+                  }
+                  className={inputClass}
+                >
+                  <option value="">None</option>
+                  {camerasList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.brand} {c.model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Lens</label>
+                <select
+                  value={form.lensId || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, lensId: e.target.value ? Number(e.target.value) : null })
+                  }
+                  className={inputClass}
+                >
+                  <option value="">None</option>
+                  {lensesList.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.brand} {l.model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Aperture</label>
+                <input
+                  type="text"
+                  value={form.aperture}
+                  onChange={(e) => setForm({ ...form, aperture: e.target.value })}
+                  placeholder="f/2.8"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Shutter Speed</label>
+                <input
+                  type="text"
+                  value={form.shutterSpeed}
+                  onChange={(e) => setForm({ ...form, shutterSpeed: e.target.value })}
+                  placeholder="1/250s"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">ISO</label>
+                <input
+                  type="text"
+                  value={form.iso}
+                  onChange={(e) => setForm({ ...form, iso: e.target.value })}
+                  placeholder="400"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Focal Length</label>
+                <input
+                  type="text"
+                  value={form.focalLength}
+                  onChange={(e) => setForm({ ...form, focalLength: e.target.value })}
+                  placeholder="50mm"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Date Taken</label>
+                <input
+                  type="date"
+                  value={form.takenAt}
+                  onChange={(e) => setForm({ ...form, takenAt: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1.5">Location</label>
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  placeholder="Tokyo, Japan"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

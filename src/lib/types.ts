@@ -8,4 +8,12 @@ export interface Photo {
   width: number;
   height: number;
   featured?: boolean;
+  camera?: string;
+  lens?: string;
+  aperture?: string;
+  shutterSpeed?: string;
+  iso?: string;
+  focalLength?: string;
+  takenAt?: string;
+  location?: string;
 }
