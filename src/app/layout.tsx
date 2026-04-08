@@ -27,8 +27,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t==="light"||(t!=="dark"&&t!=="light"&&window.matchMedia("(prefers-color-scheme:light)").matches);if(d)document.documentElement.setAttribute("data-theme","light")}catch(e){}})()`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script src="/theme-init.js" />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
