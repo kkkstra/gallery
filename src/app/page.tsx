@@ -2,18 +2,28 @@ import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
 import { db } from "@/lib/db";
-import { photos as photosTable } from "@/lib/db/schema";
+import { photos as photosTable, siteSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+async function getSettings() {
+  const rows = await db.select().from(siteSettings);
+  const map: Record<string, string> = {};
+  for (const row of rows) map[row.key] = row.value;
+  return map;
+}
+
 export default async function Home() {
-  const allPhotos = await db.select().from(photosTable).orderBy(photosTable.sortOrder);
-  const featured = await db
-    .select()
-    .from(photosTable)
-    .where(eq(photosTable.featured, true))
-    .orderBy(photosTable.sortOrder);
+  const [allPhotos, featured, settings] = await Promise.all([
+    db.select().from(photosTable).orderBy(photosTable.sortOrder),
+    db
+      .select()
+      .from(photosTable)
+      .where(eq(photosTable.featured, true))
+      .orderBy(photosTable.sortOrder),
+    getSettings(),
+  ]);
 
   const heroPhoto = allPhotos[0];
   if (!heroPhoto) {
@@ -26,7 +36,13 @@ export default async function Home() {
 
   return (
     <>
-      <Hero imageSrc={heroPhoto.src} />
+      <Hero
+        imageSrc={heroPhoto.src}
+        subtitle={settings.hero_subtitle}
+        title={settings.hero_title}
+        description={settings.hero_description}
+        ctaText={settings.hero_cta_text}
+      />
 
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-16 text-center">

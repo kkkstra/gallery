@@ -29,6 +29,11 @@ async function seed() {
       slug TEXT NOT NULL UNIQUE
     );
 
+    CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
+
     CREATE TABLE IF NOT EXISTS photos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       src TEXT NOT NULL,
@@ -89,6 +94,51 @@ async function seed() {
     console.log(`  Inserted ${seedPhotos.length} photos`);
   } else {
     console.log(`Photos already seeded (${existingPhotos.length} found)`);
+  }
+
+  const defaultSettings: Record<string, string> = {
+    site_title: "Gallery",
+    site_description: "A curated collection of photography — landscapes, portraits, and street scenes.",
+    hero_subtitle: "Photography Portfolio",
+    hero_title: "Gallery",
+    hero_description: "Capturing moments, light, and emotion through the lens.",
+    hero_cta_text: "View Gallery",
+    about_portrait_url: "https://picsum.photos/id/1005/600/800",
+    about_content: `Hello, I'm a photographer based in the heart of the city, drawn to the interplay of light, shadow, and fleeting moments that tell stories words cannot.
+
+With over a decade behind the lens, I specialize in landscape, street, and portrait photography. My work has been featured in various publications and exhibitions around the world.
+
+I believe every photograph is a conversation between the subject and the viewer. My goal is to create images that linger in your memory long after you've looked away.
+
+## Get in Touch
+
+- **Email** — [hello@example.com](mailto:hello@example.com)
+- **Instagram** — [@photographer](https://instagram.com)
+- **Twitter** — [@photographer](https://twitter.com)
+
+## Available For
+
+- Commercial Projects
+- Editorial Work
+- Exhibitions
+- Prints & Licensing
+- Workshops
+- Collaborations`,
+    social_instagram: "https://instagram.com",
+    social_twitter: "https://twitter.com",
+    social_email: "hello@example.com",
+    footer_copyright: "Gallery. All rights reserved.",
+  };
+
+  const existingSettings = await db.select().from(schema.siteSettings);
+  if (existingSettings.length === 0) {
+    console.log("Seeding site settings...");
+    for (const [key, value] of Object.entries(defaultSettings)) {
+      await db.insert(schema.siteSettings).values({ key, value });
+    }
+    console.log(`  Inserted ${Object.keys(defaultSettings).length} settings`);
+  } else {
+    console.log(`Settings already seeded (${existingSettings.length} found)`);
   }
 
   console.log("Done!");

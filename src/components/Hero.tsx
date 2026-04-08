@@ -3,9 +3,19 @@ import Image from "next/image";
 
 interface HeroProps {
   imageSrc: string;
+  subtitle?: string;
+  title?: string;
+  description?: string;
+  ctaText?: string;
 }
 
-export default function Hero({ imageSrc }: HeroProps) {
+export default function Hero({
+  imageSrc,
+  subtitle = "Photography Portfolio",
+  title = "Gallery",
+  description = "Capturing moments, light, and emotion through the lens.",
+  ctaText = "View Gallery",
+}: HeroProps) {
   return (
     <section className="relative h-[100svh] w-full overflow-hidden">
       <Image
@@ -21,19 +31,19 @@ export default function Hero({ imageSrc }: HeroProps) {
 
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
         <p className="mb-4 text-sm tracking-[0.4em] uppercase text-white/70">
-          Photography Portfolio
+          {subtitle}
         </p>
         <h1 className="text-5xl md:text-7xl font-extralight tracking-wider text-white">
-          Gallery
+          {title}
         </h1>
         <p className="mt-6 max-w-lg text-lg font-light text-white/80 leading-relaxed">
-          Capturing moments, light, and emotion through the lens.
+          {description}
         </p>
         <Link
           href="/gallery"
           className="mt-10 inline-flex items-center gap-2 border border-white/40 px-8 py-3 text-sm tracking-widest uppercase text-white transition-all hover:bg-white hover:text-black"
         >
-          View Gallery
+          {ctaText}
           <svg
             className="h-4 w-4"
             fill="none"

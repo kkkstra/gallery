@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -13,6 +13,16 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [siteTitle, setSiteTitle] = useState("Gallery");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.site_title) setSiteTitle(data.site_title);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
@@ -21,7 +31,7 @@ export default function Header() {
           href="/"
           className="text-xl font-light tracking-[0.3em] uppercase text-white"
         >
-          Gallery
+          {siteTitle}
         </Link>
 
         {/* Desktop nav */}

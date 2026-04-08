@@ -35,3 +35,96 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+.prose-dark {
+  color: #d4d4d4;
+  line-height: 1.8;
+}
+
+.prose-dark h1,
+.prose-dark h2,
+.prose-dark h3,
+.prose-dark h4 {
+  color: #fff;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+}
+
+.prose-dark h1 { font-size: 1.875rem; }
+.prose-dark h2 { font-size: 1.25rem; padding-top: 1em; border-top: 1px solid rgba(255,255,255,0.1); }
+.prose-dark h3 { font-size: 1.1rem; }
+
+.prose-dark p {
+  margin-bottom: 1em;
+}
+
+.prose-dark a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.2s;
+}
+
+.prose-dark a:hover {
+  opacity: 0.7;
+}
+
+.prose-dark ul,
+.prose-dark ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose-dark ul { list-style-type: disc; }
+.prose-dark ol { list-style-type: decimal; }
+
+.prose-dark li {
+  margin-bottom: 0.35em;
+}
+
+.prose-dark strong {
+  color: #fff;
+  font-weight: 500;
+}
+
+.prose-dark blockquote {
+  border-left: 2px solid rgba(255,255,255,0.2);
+  padding-left: 1em;
+  margin-left: 0;
+  color: #a3a3a3;
+  font-style: italic;
+}
+
+.prose-dark code {
+  background: rgba(255,255,255,0.1);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.prose-dark pre {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.prose-dark pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.prose-dark hr {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 2em 0;
+}
+
+.prose-dark img {
+  border-radius: 8px;
+  max-width: 100%;
+}
