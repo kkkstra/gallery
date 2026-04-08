@@ -48,6 +48,8 @@ export const photos = sqliteTable("photos", {
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   cameraId: integer("camera_id").references(() => cameras.id),
   lensId: integer("lens_id").references(() => lenses.id),
+  camera: text("camera"),
+  lens: text("lens"),
   aperture: text("aperture"),
   shutterSpeed: text("shutter_speed"),
   iso: text("iso"),

@@ -17,8 +17,8 @@ export default function EditPhotoPage() {
     height: number;
     featured: boolean;
     sortOrder: number;
-    cameraId: number | null;
-    lensId: number | null;
+    camera: string;
+    lens: string;
     aperture: string;
     shutterSpeed: string;
     iso: string;
@@ -43,8 +43,8 @@ export default function EditPhotoPage() {
           height: data.height,
           featured: !!data.featured,
           sortOrder: data.sortOrder || 0,
-          cameraId: data.cameraId || null,
-          lensId: data.lensId || null,
+          camera: data.cameraName || data.camera || "",
+          lens: data.lensName || data.lens || "",
           aperture: data.aperture || "",
           shutterSpeed: data.shutterSpeed || "",
           iso: data.iso || "",

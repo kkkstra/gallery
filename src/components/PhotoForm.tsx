@@ -29,8 +29,8 @@ interface PhotoFormProps {
     height: number;
     featured: boolean;
     sortOrder: number;
-    cameraId: number | null;
-    lensId: number | null;
+    camera: string;
+    lens: string;
     aperture: string;
     shutterSpeed: string;
     iso: string;
@@ -50,7 +50,7 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showExif, setShowExif] = useState(
-    !!(initialData?.cameraId || initialData?.lensId || initialData?.aperture),
+    !!(initialData?.camera || initialData?.lens || initialData?.aperture),
   );
 
   const [ossAvailable, setOssAvailable] = useState<boolean | null>(null);
@@ -67,8 +67,8 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     height: initialData?.height || 1280,
     featured: initialData?.featured || false,
     sortOrder: initialData?.sortOrder || 0,
-    cameraId: initialData?.cameraId || (null as number | null),
-    lensId: initialData?.lensId || (null as number | null),
+    camera: initialData?.camera || "",
+    lens: initialData?.lens || "",
     aperture: initialData?.aperture || "",
     shutterSpeed: initialData?.shutterSpeed || "",
     iso: initialData?.iso || "",
@@ -103,32 +103,14 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
   const handleUpload = (result: UploadResult) => {
     const { exif } = result;
 
-    // Try to match EXIF camera/lens to existing equipment entries
-    let matchedCameraId: number | null = null;
-    let matchedLensId: number | null = null;
-    if (exif.camera) {
-      const cam = exif.camera.toLowerCase();
-      const match = camerasList.find(
-        (c) => cam.includes(c.model.toLowerCase()) || `${c.brand} ${c.model}`.toLowerCase() === cam,
-      );
-      if (match) matchedCameraId = match.id;
-    }
-    if (exif.lens) {
-      const l = exif.lens.toLowerCase();
-      const match = lensesList.find(
-        (le) => l.includes(le.model.toLowerCase()) || `${le.brand} ${le.model}`.toLowerCase() === l,
-      );
-      if (match) matchedLensId = match.id;
-    }
-
     setForm((prev) => ({
       ...prev,
       src: result.src,
       thumbnail: result.thumbnail,
       width: result.width,
       height: result.height,
-      cameraId: matchedCameraId ?? prev.cameraId,
-      lensId: matchedLensId ?? prev.lensId,
+      camera: exif.camera || prev.camera,
+      lens: exif.lens || prev.lens,
       aperture: exif.aperture || prev.aperture,
       shutterSpeed: exif.shutterSpeed || prev.shutterSpeed,
       iso: exif.iso || prev.iso,
@@ -147,6 +129,20 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     setUploaded(false);
   };
 
+  const resolveEquipmentId = (
+    text: string,
+    list: Equipment[],
+  ): number | null => {
+    if (!text.trim()) return null;
+    const t = text.toLowerCase().trim();
+    const match = list.find(
+      (item) =>
+        `${item.brand} ${item.model}`.toLowerCase() === t ||
+        item.model.toLowerCase() === t,
+    );
+    return match?.id ?? null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -157,10 +153,16 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
       const url = isEdit ? `/api/photos/${initialData.id}` : "/api/photos";
       const method = isEdit ? "PUT" : "POST";
 
+      const payload = {
+        ...form,
+        cameraId: resolveEquipmentId(form.camera, camerasList),
+        lensId: resolveEquipmentId(form.lens, lensesList),
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -449,49 +451,41 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
                 <label className="block text-sm text-neutral-400 mb-1.5">
                   Camera
                 </label>
-                <select
-                  value={form.cameraId || ""}
+                <input
+                  type="text"
+                  list="cameras-list"
+                  value={form.camera}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      cameraId: e.target.value
-                        ? Number(e.target.value)
-                        : null,
-                    })
+                    setForm({ ...form, camera: e.target.value })
                   }
+                  placeholder="Select or type camera name"
                   className={inputClass}
-                >
-                  <option value="">None</option>
+                />
+                <datalist id="cameras-list">
                   {camerasList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.brand} {c.model}
-                    </option>
+                    <option key={c.id} value={`${c.brand} ${c.model}`} />
                   ))}
-                </select>
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm text-neutral-400 mb-1.5">
                   Lens
                 </label>
-                <select
-                  value={form.lensId || ""}
+                <input
+                  type="text"
+                  list="lenses-list"
+                  value={form.lens}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      lensId: e.target.value
-                        ? Number(e.target.value)
-                        : null,
-                    })
+                    setForm({ ...form, lens: e.target.value })
                   }
+                  placeholder="Select or type lens name"
                   className={inputClass}
-                >
-                  <option value="">None</option>
+                />
+                <datalist id="lenses-list">
                   {lensesList.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.brand} {l.model}
-                    </option>
+                    <option key={l.id} value={`${l.brand} ${l.model}`} />
                   ))}
-                </select>
+                </datalist>
               </div>
             </div>
 

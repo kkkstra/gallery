@@ -67,6 +67,8 @@ async function seed() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       camera_id INTEGER REFERENCES cameras(id),
       lens_id INTEGER REFERENCES lenses(id),
+      camera TEXT,
+      lens TEXT,
       aperture TEXT,
       shutter_speed TEXT,
       iso TEXT,
@@ -103,6 +105,8 @@ async function seed() {
     "ALTER TABLE photos ADD COLUMN focal_length TEXT",
     "ALTER TABLE photos ADD COLUMN taken_at TEXT",
     "ALTER TABLE photos ADD COLUMN location TEXT",
+    "ALTER TABLE photos ADD COLUMN camera TEXT",
+    "ALTER TABLE photos ADD COLUMN lens TEXT",
   ];
   for (const stmt of alterStatements) {
     try {

@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
       createdAt: photos.createdAt,
       cameraId: photos.cameraId,
       lensId: photos.lensId,
+      camera: photos.camera,
+      lens: photos.lens,
       aperture: photos.aperture,
       shutterSpeed: photos.shutterSpeed,
       iso: photos.iso,
@@ -63,8 +65,8 @@ export async function GET(request: NextRequest) {
 
   const results = rows.map((r) => ({
     ...r,
-    cameraName: r.cameraBrand && r.cameraModel ? `${r.cameraBrand} ${r.cameraModel}` : null,
-    lensName: r.lensBrand && r.lensModel ? `${r.lensBrand} ${r.lensModel}` : null,
+    cameraName: r.camera || (r.cameraBrand && r.cameraModel ? `${r.cameraBrand} ${r.cameraModel}` : null),
+    lensName: r.lens || (r.lensBrand && r.lensModel ? `${r.lensBrand} ${r.lensModel}` : null),
   }));
 
   return NextResponse.json(results);
@@ -91,6 +93,8 @@ export async function POST(request: NextRequest) {
       sortOrder: body.sortOrder || 0,
       cameraId: body.cameraId || null,
       lensId: body.lensId || null,
+      camera: body.camera || null,
+      lens: body.lens || null,
       aperture: body.aperture || null,
       shutterSpeed: body.shutterSpeed || null,
       iso: body.iso || null,
