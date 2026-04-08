@@ -12,7 +12,7 @@ interface LightboxProps {
   onNavigate: (index: number) => void;
 }
 
-function ExifItem({ label, value }: { label: string; value?: string }) {
+function DetailItem({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
     <div className="flex flex-col items-center gap-0.5">
@@ -32,11 +32,6 @@ export default function Lightbox({
   const [direction, setDirection] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
-
-  const hasExif = !!(
-    photo.camera || photo.lens || photo.aperture || photo.shutterSpeed ||
-    photo.iso || photo.focalLength || photo.takenAt || photo.location
-  );
 
   const goNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
@@ -110,23 +105,21 @@ export default function Lightbox({
         </svg>
       </button>
 
-      {/* Info toggle */}
-      {hasExif && (
-        <button
-          className={`absolute top-5 right-16 z-10 p-2 transition-colors ${
-            showDetails ? "text-white" : "text-white/50 hover:text-white"
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDetails((v) => !v);
-          }}
-          aria-label="Toggle details"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-          </svg>
-        </button>
-      )}
+      {/* Info toggle -- always visible */}
+      <button
+        className={`absolute top-5 right-16 z-10 p-2 transition-colors ${
+          showDetails ? "text-white" : "text-white/50 hover:text-white"
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowDetails((v) => !v);
+        }}
+        aria-label="Toggle details"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+      </button>
 
       {/* Previous */}
       {currentIndex > 0 && (
@@ -179,7 +172,7 @@ export default function Lightbox({
         </motion.div>
       </AnimatePresence>
 
-      {/* Caption + EXIF */}
+      {/* Caption + Details */}
       <div
         className="absolute bottom-0 left-0 right-0 text-center pointer-events-none"
         onClick={(e) => e.stopPropagation()}
@@ -194,7 +187,7 @@ export default function Lightbox({
           </p>
 
           <AnimatePresence>
-            {showDetails && hasExif && (
+            {showDetails && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -202,15 +195,17 @@ export default function Lightbox({
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden"
               >
-                <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 border-t border-white/10 pt-4 px-4">
-                  <ExifItem label="Camera" value={photo.camera} />
-                  <ExifItem label="Lens" value={photo.lens} />
-                  <ExifItem label="Aperture" value={photo.aperture} />
-                  <ExifItem label="Shutter" value={photo.shutterSpeed} />
-                  <ExifItem label="ISO" value={photo.iso} />
-                  <ExifItem label="Focal" value={photo.focalLength} />
-                  <ExifItem label="Date" value={photo.takenAt} />
-                  <ExifItem label="Location" value={photo.location} />
+                <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-3 border-t border-white/10 pt-4 px-4">
+                  <DetailItem label="Category" value={photo.category} />
+                  <DetailItem label="Dimensions" value={`${photo.width} × ${photo.height}`} />
+                  <DetailItem label="Camera" value={photo.camera} />
+                  <DetailItem label="Lens" value={photo.lens} />
+                  <DetailItem label="Aperture" value={photo.aperture} />
+                  <DetailItem label="Shutter" value={photo.shutterSpeed} />
+                  <DetailItem label="ISO" value={photo.iso} />
+                  <DetailItem label="Focal" value={photo.focalLength} />
+                  <DetailItem label="Date" value={photo.takenAt} />
+                  <DetailItem label="Location" value={photo.location} />
                 </div>
               </motion.div>
             )}
