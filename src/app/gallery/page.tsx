@@ -26,7 +26,7 @@ export default function GalleryPage() {
           thumbnail: p.thumbnail,
           title: p.title,
           description: p.description,
-          category: p.category_slug,
+          category: p.categorySlug,
           width: p.width,
           height: p.height,
           featured: !!p.featured,

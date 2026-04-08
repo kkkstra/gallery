@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const sidebarLinks = [
   {
@@ -51,6 +52,11 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   if (pathname === "/admin/login") {
     return <>{children}</>;
@@ -63,15 +69,49 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-neutral-950">
+      {/* Mobile top bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-neutral-900 border-b border-white/10 px-4 py-3 md:hidden">
+        <Link href="/admin" className="text-lg font-light tracking-wider text-white">
+          Gallery Admin
+        </Link>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-1.5 text-neutral-400 hover:text-white transition-colors"
+          aria-label="Toggle sidebar"
+        >
+          {sidebarOpen ? (
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-60 bg-neutral-900 border-r border-white/10 flex flex-col z-50">
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-60 bg-neutral-900 border-r border-white/10 flex flex-col z-50 transition-transform duration-300 md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="p-6 border-b border-white/10">
           <Link href="/admin" className="text-lg font-light tracking-wider text-white">
             Gallery Admin
           </Link>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) => {
             const isActive =
               link.href === "/admin"
@@ -118,7 +158,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="ml-60 flex-1 p-8">{children}</main>
+      <main className="flex-1 p-6 pt-16 md:pt-8 md:ml-60 md:p-8">{children}</main>
     </div>
   );
 }
