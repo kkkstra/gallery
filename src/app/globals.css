@@ -150,6 +150,23 @@ body {
 .prose-styled hr { border: none; border-top: 1px solid var(--prose-border); margin: 2em 0; }
 .prose-styled img { border-radius: 8px; max-width: 100%; }
 
+/* Force dark scope — admin panel always stays dark regardless of theme */
+.force-dark {
+  --bg: #0a0a0a;
+  --bg-secondary: #000;
+  --text: #ededed;
+  --text-muted: #a3a3a3;
+  --text-faint: #737373;
+  --border: rgba(255, 255, 255, 0.1);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --header-bg: rgba(0, 0, 0, 0.8);
+  --selection-bg: rgba(255, 255, 255, 0.2);
+  --scrollbar: rgba(255, 255, 255, 0.15);
+  --scrollbar-hover: rgba(255, 255, 255, 0.3);
+  color: #ededed;
+}
+
 /* Keep old class as alias for admin panel (always dark) */
 .prose-dark {
   color: #d4d4d4;

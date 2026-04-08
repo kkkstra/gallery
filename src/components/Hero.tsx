@@ -23,6 +23,7 @@ export default function Hero({
         alt="Hero photograph"
         fill
         priority
+        quality={90}
         className="object-cover"
         sizes="100vw"
       />

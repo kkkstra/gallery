@@ -87,7 +87,7 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-neutral-950">
+    <div className="force-dark flex min-h-screen bg-neutral-950">
       {/* Mobile top bar */}
       <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-neutral-900 border-b border-white/10 px-4 py-3 md:hidden">
         <Link href="/admin" className="text-lg font-light tracking-wider text-white">

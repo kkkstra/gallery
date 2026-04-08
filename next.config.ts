@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const ossCustomDomain = process.env.ALIYUN_OSS_CUSTOM_DOMAIN;
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -19,6 +21,13 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.amazonaws.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.aliyuncs.com",
+      },
+      ...(ossCustomDomain
+        ? [{ protocol: "https" as const, hostname: ossCustomDomain }]
+        : []),
     ],
   },
 };
