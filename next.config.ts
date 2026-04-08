@@ -4,6 +4,7 @@ const ossCustomDomain = process.env.ALIYUN_OSS_CUSTOM_DOMAIN;
 
 const nextConfig: NextConfig = {
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

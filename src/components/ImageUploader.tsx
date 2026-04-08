@@ -134,6 +134,40 @@ async function readExif(file: File): Promise<ExifData> {
   }
 }
 
+const THUMB_MAX_WIDTH = 800;
+const THUMB_QUALITY = 0.85;
+
+function generateThumbnail(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.min(1, THUMB_MAX_WIDTH / img.naturalWidth);
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob);
+          else reject(new Error("Failed to generate thumbnail"));
+        },
+        "image/jpeg",
+        THUMB_QUALITY,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load image for thumbnail"));
+    };
+    img.src = url;
+  });
+}
+
 function uploadToOSS(
   signedUrl: string,
   file: File,
@@ -196,15 +230,21 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
           throw new Error(data.error || "Failed to get upload URL");
         }
 
-        const { signedUrl, publicUrl, thumbnailUrl } = await presignRes.json();
+        const { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl } =
+          await presignRes.json();
 
         setState("uploading");
-        await uploadToOSS(signedUrl, file, file.type, setProgress);
+        const thumbBlob = await generateThumbnail(file);
+
+        await Promise.all([
+          uploadToOSS(signedUrl, file, file.type, setProgress),
+          uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg", () => {}),
+        ]);
 
         setState("done");
         onUpload({
           src: publicUrl,
-          thumbnail: thumbnailUrl,
+          thumbnail: thumbPublicUrl,
           width: dims.width,
           height: dims.height,
           exif,

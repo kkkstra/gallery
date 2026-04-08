@@ -59,9 +59,12 @@ export function getPresignedPut(filename: string, contentType: string) {
   const key = buildObjectKey(filename);
   const signedUrl = signV1Put(key, contentType, 300);
   const publicUrl = `${getPublicBaseUrl()}/${key}`;
-  const thumbnailUrl = `${publicUrl}?x-oss-process=image/resize,w_800/quality,q_85`;
 
-  return { signedUrl, publicUrl, thumbnailUrl, key };
+  const thumbKey = key.replace("photos/", "thumbs/");
+  const thumbSignedUrl = signV1Put(thumbKey, "image/jpeg", 300);
+  const thumbPublicUrl = `${getPublicBaseUrl()}/${thumbKey}`;
+
+  return { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl, key };
 }
 
 export function isOSSConfigured(): boolean {
