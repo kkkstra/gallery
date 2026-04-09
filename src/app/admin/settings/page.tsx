@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { marked } from "marked";
 
@@ -51,6 +51,8 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -295,35 +297,84 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* Data Export */}
+      {/* Data Export / Import */}
       <div className="mt-10">
         <h2 className="text-sm font-medium uppercase tracking-widest text-neutral-400 mb-4 pb-2 border-b border-white/10">
-          Data Export
+          Data Export / Import
         </h2>
         <p className="text-sm text-neutral-500 mb-3">
-          Export all site data (settings, photos, collections, etc.) as JSON. Photo files remain on your storage; the export includes their URLs.
+          Export all site data as JSON, or restore from a previous backup. Photo files remain on your storage; the export includes their URLs.
         </p>
-        <button
-          type="button"
-          onClick={async () => {
-            const res = await fetch("/api/export");
-            if (!res.ok) return alert("Export failed");
-            const data = await res.json();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `gallery-backup-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-neutral-400 hover:text-white hover:border-white/30 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Export Data
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await fetch("/api/export");
+              if (!res.ok) return alert("Export failed");
+              const data = await res.json();
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `gallery-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-neutral-400 hover:text-white hover:border-white/30 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Export Data
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (!confirm("This will REPLACE all existing data with the backup. Continue?")) {
+                if (importInputRef.current) importInputRef.current.value = "";
+                return;
+              }
+              setImporting(true);
+              try {
+                const text = await file.text();
+                const json = JSON.parse(text);
+                const res = await fetch("/api/import", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(json),
+                });
+                const result = await res.json();
+                if (res.ok) {
+                  alert(`Import successful!\n${Object.entries(result.counts || {}).map(([k, v]) => `${k}: ${v}`).join("\n")}`);
+                  window.location.reload();
+                } else {
+                  alert(`Import failed: ${result.error}`);
+                }
+              } catch (err) {
+                alert(`Import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+              } finally {
+                setImporting(false);
+                if (importInputRef.current) importInputRef.current.value = "";
+              }
+            }}
+          />
+          <button
+            type="button"
+            disabled={importing}
+            onClick={() => importInputRef.current?.click()}
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-neutral-400 hover:text-white hover:border-white/30 transition-colors disabled:opacity-50"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            {importing ? "Importing..." : "Import Data"}
+          </button>
+        </div>
       </div>
 
       {/* Save button */}

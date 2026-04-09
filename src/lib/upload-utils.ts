@@ -140,11 +140,17 @@ export function uploadToOSS(
   file: File | Blob,
   contentType: string,
   onProgress?: (pct: number) => void,
+  extraHeaders?: Record<string, string>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", signedUrl, true);
     xhr.setRequestHeader("Content-Type", contentType);
+    if (extraHeaders) {
+      for (const [k, v] of Object.entries(extraHeaders)) {
+        xhr.setRequestHeader(k, v);
+      }
+    }
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };
@@ -172,13 +178,14 @@ export async function processAndUploadFile(
     const data = await presignRes.json();
     throw new Error(data.error || "Failed to get upload URL");
   }
-  const { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl } = await presignRes.json();
+  const { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl, cacheControl } = await presignRes.json();
 
+  const ossHeaders = cacheControl ? { "x-oss-cache-control": cacheControl } : undefined;
   const thumbBlob = await generateThumbnail(file);
 
   await Promise.all([
-    uploadToOSS(signedUrl, file, file.type, onProgress),
-    uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg"),
+    uploadToOSS(signedUrl, file, file.type, onProgress, ossHeaders),
+    uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg", undefined, ossHeaders),
   ]);
 
   return { src: publicUrl, thumbnail: thumbPublicUrl, width: dims.width, height: dims.height, exif };

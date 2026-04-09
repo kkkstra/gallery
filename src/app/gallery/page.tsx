@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Photo } from "@/lib/types";
 import PhotoGrid from "@/components/PhotoGrid";
@@ -24,26 +24,35 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "title-desc", label: "Title (Z → A)" },
 ];
 
-function sortPhotos(photos: Photo[], key: SortKey): Photo[] {
-  const arr = [...photos];
-  switch (key) {
-    case "taken-desc":
-      return arr.sort((a, b) => (b.takenAt || "").localeCompare(a.takenAt || ""));
-    case "taken-asc":
-      return arr.sort((a, b) => (a.takenAt || "").localeCompare(b.takenAt || ""));
-    case "added-desc":
-      return arr.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-    case "added-asc":
-      return arr.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-    case "title-asc":
-      return arr.sort((a, b) => a.title.localeCompare(b.title));
-    case "title-desc":
-      return arr.sort((a, b) => b.title.localeCompare(a.title));
-  }
+const PAGE_SIZE = 20;
+
+function mapPhoto(p: Record<string, unknown>): Photo {
+  return {
+    id: String(p.id),
+    src: p.src as string,
+    thumbnail: p.thumbnail as string | undefined,
+    title: p.title as string,
+    description: p.description as string | undefined,
+    category: p.categorySlug as string,
+    width: p.width as number,
+    height: p.height as number,
+    featured: !!p.featured,
+    camera: (p.cameraName || p.camera) as string | undefined,
+    lens: (p.lensName || p.lens) as string | undefined,
+    aperture: p.aperture as string | undefined,
+    shutterSpeed: p.shutterSpeed as string | undefined,
+    iso: p.iso as string | undefined,
+    focalLength: p.focalLength as string | undefined,
+    takenAt: p.takenAt as string | undefined,
+    location: p.location as string | undefined,
+    createdAt: p.createdAt as string | undefined,
+    sortOrder: p.sortOrder as number | undefined,
+  };
 }
 
 export default function GalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,82 +63,100 @@ export default function GalleryPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [uniqueCameras, setUniqueCameras] = useState<string[]>([]);
+  const [uniqueLenses, setUniqueLenses] = useState<string[]>([]);
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const hasMore = photos.length < total;
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/photos").then((r) => r.json()),
+      fetch("/api/photos/filters").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
-    ]).then(([photosData, catsData]) => {
-      setPhotos(
-        photosData.map((p: Record<string, unknown>) => ({
-          id: String(p.id),
-          src: p.src as string,
-          thumbnail: p.thumbnail as string | undefined,
-          title: p.title as string,
-          description: p.description as string | undefined,
-          category: p.categorySlug as string,
-          width: p.width as number,
-          height: p.height as number,
-          featured: !!p.featured,
-          camera: p.cameraName as string | undefined,
-          lens: p.lensName as string | undefined,
-          aperture: p.aperture as string | undefined,
-          shutterSpeed: p.shutterSpeed as string | undefined,
-          iso: p.iso as string | undefined,
-          focalLength: p.focalLength as string | undefined,
-          takenAt: p.takenAt as string | undefined,
-          location: p.location as string | undefined,
-          createdAt: p.createdAt as string | undefined,
-          sortOrder: p.sortOrder as number | undefined,
-        })),
-      );
+    ]).then(([filters, catsData]) => {
+      setUniqueCameras(filters.cameras || []);
+      setUniqueLenses(filters.lenses || []);
+      setUniqueLocations(filters.locations || []);
       setCategories(catsData.map((c: { slug: string }) => c.slug));
-      setLoading(false);
     });
   }, []);
 
-  const uniqueCameras = useMemo(
-    () => [...new Set(photos.map((p) => p.camera).filter(Boolean))] as string[],
-    [photos],
+  const buildUrl = useCallback(
+    (offset: number) => {
+      const params = new URLSearchParams();
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(offset));
+      params.set("sort", sortKey);
+      if (activeCategory) params.set("category", activeCategory);
+      if (cameraFilter) params.set("camera", cameraFilter);
+      if (lensFilter) params.set("lens", lensFilter);
+      if (locationFilter) params.set("location", locationFilter);
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      return `/api/photos?${params.toString()}`;
+    },
+    [sortKey, activeCategory, cameraFilter, lensFilter, locationFilter, searchQuery],
   );
-  const uniqueLenses = useMemo(
-    () => [...new Set(photos.map((p) => p.lens).filter(Boolean))] as string[],
-    [photos],
+
+  const fetchPage = useCallback(
+    async (offset: number, append: boolean) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+
+      try {
+        const res = await fetch(buildUrl(offset));
+        const data = await res.json();
+        const mapped = data.photos.map(mapPhoto);
+        setPhotos((prev) => (append ? [...prev, ...mapped] : mapped));
+        setTotal(data.total);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [buildUrl],
   );
-  const uniqueLocations = useMemo(
-    () => [...new Set(photos.map((p) => p.location).filter(Boolean))] as string[],
-    [photos],
-  );
+
+  useEffect(() => {
+    setPhotos([]);
+    setTotal(0);
+    fetchPage(0, false);
+  }, [sortKey, activeCategory, cameraFilter, lensFilter, locationFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setPhotos([]);
+      setTotal(0);
+      fetchPage(0, false);
+    }, 350);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          fetchPage(photos.length, true);
+        }
+      },
+      { rootMargin: "400px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, photos.length, fetchPage]);
 
   const activeFilterCount = [cameraFilter, lensFilter, locationFilter].filter(Boolean).length;
-
-  const filtered = useMemo(() => {
-    let result = photos;
-    if (activeCategory) {
-      result = result.filter((p) => p.category === activeCategory);
-    }
-    if (cameraFilter) {
-      result = result.filter((p) => p.camera === cameraFilter);
-    }
-    if (lensFilter) {
-      result = result.filter((p) => p.lens === lensFilter);
-    }
-    if (locationFilter) {
-      result = result.filter((p) => p.location === locationFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.description && p.description.toLowerCase().includes(q)) ||
-          (p.location && p.location.toLowerCase().includes(q)) ||
-          (p.camera && p.camera.toLowerCase().includes(q)) ||
-          (p.lens && p.lens.toLowerCase().includes(q)),
-      );
-    }
-    return sortPhotos(result, sortKey);
-  }, [activeCategory, cameraFilter, lensFilter, locationFilter, searchQuery, photos, sortKey]);
 
   const clearAllFilters = () => {
     setActiveCategory(null);
@@ -143,7 +170,7 @@ export default function GalleryPage() {
   const selectClass =
     "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--text-muted)] transition-colors appearance-none cursor-pointer";
 
-  if (loading) {
+  if (loading && photos.length === 0) {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="flex items-center justify-center py-20">
@@ -174,7 +201,6 @@ export default function GalleryPage() {
 
       {/* Toolbar: Search + Sort + Filter toggle */}
       <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-        {/* Search */}
         <div className="relative w-full sm:w-auto sm:min-w-[280px]">
           <svg
             className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-faint)]"
@@ -194,7 +220,6 @@ export default function GalleryPage() {
           />
         </div>
 
-        {/* Sort */}
         <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as SortKey)}
@@ -207,7 +232,6 @@ export default function GalleryPage() {
           ))}
         </select>
 
-        {/* Filter toggle */}
         {(uniqueCameras.length > 0 || uniqueLenses.length > 0 || uniqueLocations.length > 0) && (
           <button
             type="button"
@@ -297,7 +321,7 @@ export default function GalleryPage() {
       {(searchQuery.trim() || activeCategory || activeFilterCount > 0) && (
         <div className="mb-6 flex items-center justify-center gap-3">
           <p className="text-sm text-[var(--text-faint)]">
-            {filtered.length} photo{filtered.length !== 1 ? "s" : ""}
+            {total} photo{total !== 1 ? "s" : ""}
             {searchQuery.trim() && <> matching &ldquo;{searchQuery}&rdquo;</>}
           </p>
           <button
@@ -310,12 +334,27 @@ export default function GalleryPage() {
         </div>
       )}
 
-      <PhotoGrid photos={filtered} onPhotoClick={setLightboxIndex} />
+      <PhotoGrid photos={photos} onPhotoClick={setLightboxIndex} />
+
+      {/* Sentinel for infinite scroll */}
+      <div ref={sentinelRef} className="h-4" />
+
+      {loadingMore && (
+        <div className="flex items-center justify-center py-8">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--text-faint)] border-t-transparent" />
+        </div>
+      )}
+
+      {!hasMore && photos.length > 0 && !loading && (
+        <p className="text-center text-sm text-[var(--text-faint)] py-8">
+          All {total} photos loaded
+        </p>
+      )}
 
       <AnimatePresence>
         {lightboxIndex !== null && (
           <Lightbox
-            photos={filtered}
+            photos={photos}
             currentIndex={lightboxIndex}
             onClose={() => setLightboxIndex(null)}
             onNavigate={setLightboxIndex}

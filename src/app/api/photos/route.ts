@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { photos, cameras, lenses } from "@/lib/db/schema";
-import { eq, like, or, and, sql } from "drizzle-orm";
+import { eq, like, or, and, desc, asc, sql } from "drizzle-orm";
 import { verifyTokenFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,12 @@ export async function GET(request: NextRequest) {
   const featured = searchParams.get("featured");
   const category = searchParams.get("category");
   const q = searchParams.get("q");
+  const camera = searchParams.get("camera");
+  const lens = searchParams.get("lens");
+  const location = searchParams.get("location");
+  const sort = searchParams.get("sort");
+  const limitParam = searchParams.get("limit");
+  const offsetParam = searchParams.get("offset");
 
   const conditions = [];
 
@@ -20,16 +26,52 @@ export async function GET(request: NextRequest) {
   if (category) {
     conditions.push(eq(photos.categorySlug, category));
   }
+  if (camera) {
+    conditions.push(
+      or(
+        eq(photos.camera, camera),
+        sql`(${cameras.brand} || ' ' || ${cameras.model}) = ${camera}`,
+      ),
+    );
+  }
+  if (lens) {
+    conditions.push(
+      or(
+        eq(photos.lens, lens),
+        sql`(${lenses.brand} || ' ' || ${lenses.model}) = ${lens}`,
+      ),
+    );
+  }
+  if (location) {
+    conditions.push(eq(photos.location, location));
+  }
   if (q) {
     conditions.push(
       or(
         like(photos.title, `%${q}%`),
         like(photos.description, `%${q}%`),
+        like(photos.location, `%${q}%`),
+        like(photos.camera, `%${q}%`),
+        like(photos.lens, `%${q}%`),
       ),
     );
   }
 
-  const rows = await db
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const orderBy = (() => {
+    switch (sort) {
+      case "taken-asc": return asc(photos.takenAt);
+      case "added-desc": return desc(photos.createdAt);
+      case "added-asc": return asc(photos.createdAt);
+      case "title-asc": return asc(photos.title);
+      case "title-desc": return desc(photos.title);
+      case "taken-desc": return desc(photos.takenAt);
+      default: return photos.sortOrder;
+    }
+  })();
+
+  const baseQuery = db
     .select({
       id: photos.id,
       src: photos.src,
@@ -60,9 +102,36 @@ export async function GET(request: NextRequest) {
     .from(photos)
     .leftJoin(cameras, eq(photos.cameraId, cameras.id))
     .leftJoin(lenses, eq(photos.lensId, lenses.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(photos.sortOrder);
+    .where(where)
+    .orderBy(orderBy);
 
+  if (limitParam) {
+    const limit = Math.min(100, Math.max(1, Number(limitParam) || 20));
+    const offset = Math.max(0, Number(offsetParam) || 0);
+
+    const [rows, countResult] = await Promise.all([
+      baseQuery.limit(limit).offset(offset),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(photos)
+        .leftJoin(cameras, eq(photos.cameraId, cameras.id))
+        .leftJoin(lenses, eq(photos.lensId, lenses.id))
+        .where(where),
+    ]);
+
+    const results = rows.map((r) => ({
+      ...r,
+      cameraName: r.camera || (r.cameraBrand && r.cameraModel ? `${r.cameraBrand} ${r.cameraModel}` : null),
+      lensName: r.lens || (r.lensBrand && r.lensModel ? `${r.lensBrand} ${r.lensModel}` : null),
+    }));
+
+    return NextResponse.json({
+      photos: results,
+      total: countResult[0].count,
+    });
+  }
+
+  const rows = await baseQuery;
   const results = rows.map((r) => ({
     ...r,
     cameraName: r.camera || (r.cameraBrand && r.cameraModel ? `${r.cameraBrand} ${r.cameraModel}` : null),
