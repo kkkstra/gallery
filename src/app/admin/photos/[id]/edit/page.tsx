@@ -31,7 +31,7 @@ export default function EditPhotoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/photos/${params.id}`)
+    fetch(`/api/photos/${params.id}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         setPhoto({

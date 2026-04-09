@@ -194,7 +194,7 @@ export default function BatchUploader() {
     if (!item.photoId || !item.editData) return;
     updateFile(item.id, { saving: true });
     try {
-      const existing = await fetch(`/api/photos/${item.photoId}`).then((r) => r.json());
+      const existing = await fetch(`/api/photos/${item.photoId}`, { cache: "no-store" }).then((r) => r.json());
       const res = await fetch(`/api/photos/${item.photoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
