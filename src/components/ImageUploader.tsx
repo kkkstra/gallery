@@ -57,16 +57,15 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
           throw new Error(data.error || "Failed to get upload URL");
         }
 
-        const { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl, cacheControl } =
+        const { signedUrl, publicUrl, thumbSignedUrl, thumbPublicUrl } =
           await presignRes.json();
 
         setState("uploading");
-        const ossHeaders = cacheControl ? { "x-oss-cache-control": cacheControl } : undefined;
         const thumbBlob = await generateThumbnail(file);
 
         await Promise.all([
-          uploadToOSS(signedUrl, file, file.type, setProgress, ossHeaders),
-          uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg", undefined, ossHeaders),
+          uploadToOSS(signedUrl, file, file.type, setProgress),
+          uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg"),
         ]);
 
         setState("done");

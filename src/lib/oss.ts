@@ -30,21 +30,14 @@ function buildObjectKey(filename: string): string {
   return `photos/${yyyy}/${mm}/${randomUUID()}-${safe}`;
 }
 
-const CACHE_CONTROL = "public, max-age=31536000, immutable";
-
 /**
  * Generate an OSS V1 presigned PUT URL using HMAC-SHA1.
- * Includes Cache-Control via x-oss-meta headers in the signature.
  */
 function signV1Put(key: string, contentType: string, expireSeconds: number) {
   const { bucket, region, accessKeyId, accessKeySecret } = getConfig();
   const expires = Math.floor(Date.now() / 1000) + expireSeconds;
 
-  // Canonicalized OSS headers must be sorted and newline-separated
-  const ossHeaders = `x-oss-cache-control:${CACHE_CONTROL}`;
-
-  // Format: VERB \n Content-MD5 \n Content-Type \n Expires \n CanonicalizedOSSHeaders \n CanonicalizedResource
-  const stringToSign = `PUT\n\n${contentType}\n${expires}\n${ossHeaders}\n/${bucket}/${key}`;
+  const stringToSign = `PUT\n\n${contentType}\n${expires}\n/${bucket}/${key}`;
   const signature = createHmac("sha1", accessKeySecret)
     .update(stringToSign)
     .digest("base64");
@@ -74,7 +67,6 @@ export function getPresignedPut(filename: string, contentType: string) {
     thumbSignedUrl,
     thumbPublicUrl,
     key,
-    cacheControl: CACHE_CONTROL,
   };
 }
 
