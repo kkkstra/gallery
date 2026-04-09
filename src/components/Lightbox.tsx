@@ -6,6 +6,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Photo } from "@/lib/types";
 
 const DESC_TRUNCATE = 120;
+const MIN_SCALE = 1;
+const MAX_SCALE = 5;
+const ZOOM_STEP = 0.5;
 
 interface LightboxProps {
   photos: Photo[];
@@ -24,6 +27,12 @@ function DetailItem({ label, value }: { label: string; value?: string }) {
   );
 }
 
+function getTouchDistance(touches: React.TouchList | TouchList) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 export default function Lightbox({
   photos,
   currentIndex,
@@ -34,7 +43,22 @@ export default function Lightbox({
   const [direction, setDirection] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const pinchRef = useRef<{ dist: number; scale: number } | null>(null);
+  const panRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const mousePanRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const lastTap = useRef(0);
+
+  const isZoomed = scale > 1.05;
+
+  const resetZoom = useCallback(() => {
+    setScale(1);
+    setTranslate({ x: 0, y: 0 });
+  }, []);
 
   const descTruncated = useMemo(() => {
     if (!photo.description || photo.description.length <= DESC_TRUNCATE) return null;
@@ -45,24 +69,40 @@ export default function Lightbox({
     if (currentIndex < photos.length - 1) {
       setDirection(1);
       setDescExpanded(false);
+      resetZoom();
       onNavigate(currentIndex + 1);
     }
-  }, [currentIndex, photos.length, onNavigate]);
+  }, [currentIndex, photos.length, onNavigate, resetZoom]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setDirection(-1);
       setDescExpanded(false);
+      resetZoom();
       onNavigate(currentIndex - 1);
     }
-  }, [currentIndex, onNavigate]);
+  }, [currentIndex, onNavigate, resetZoom]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") goNext();
-      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "Escape") {
+        if (isZoomed) resetZoom();
+        else onClose();
+      }
+      if (e.key === "ArrowRight" && !isZoomed) goNext();
+      if (e.key === "ArrowLeft" && !isZoomed) goPrev();
       if (e.key === "i") setShowDetails((v) => !v);
+      if (e.key === "=" || e.key === "+") {
+        setScale((s) => Math.min(MAX_SCALE, s + ZOOM_STEP));
+      }
+      if (e.key === "-") {
+        setScale((s) => {
+          const next = Math.max(MIN_SCALE, s - ZOOM_STEP);
+          if (next <= 1.05) setTranslate({ x: 0, y: 0 });
+          return next;
+        });
+      }
+      if (e.key === "0") resetZoom();
     };
     window.addEventListener("keydown", handleKey);
     document.body.style.overflow = "hidden";
@@ -70,13 +110,91 @@ export default function Lightbox({
       window.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "";
     };
-  }, [onClose, goNext, goPrev]);
+  }, [onClose, goNext, goPrev, isZoomed, resetZoom]);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.stopPropagation();
+    setScale((s) => {
+      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, s - e.deltaY * 0.002));
+      if (next <= 1.05) setTranslate({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    e.preventDefault();
+    setIsDragging(true);
+    mousePanRef.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
+  }, [isZoomed, translate]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!mousePanRef.current || !isDragging) return;
+    const dx = e.clientX - mousePanRef.current.x;
+    const dy = e.clientY - mousePanRef.current.y;
+    setTranslate({ x: mousePanRef.current.tx + dx, y: mousePanRef.current.ty + dy });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    mousePanRef.current = null;
+    setIsDragging(false);
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.touches.length === 2) {
+      pinchRef.current = { dist: getTouchDistance(e.touches), scale };
+      panRef.current = null;
+      touchStart.current = null;
+    } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+        if (isZoomed) resetZoom();
+        else {
+          setScale(2.5);
+        }
+        lastTap.current = 0;
+        return;
+      }
+      lastTap.current = now;
+
+      if (isZoomed) {
+        panRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          tx: translate.x,
+          ty: translate.y,
+        };
+        touchStart.current = null;
+      } else {
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        panRef.current = null;
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      const dist = getTouchDistance(e.touches);
+      const ratio = dist / pinchRef.current.dist;
+      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, pinchRef.current.scale * ratio));
+      setScale(next);
+      if (next <= 1.05) setTranslate({ x: 0, y: 0 });
+    } else if (e.touches.length === 1 && panRef.current && isZoomed) {
+      const dx = e.touches[0].clientX - panRef.current.x;
+      const dy = e.touches[0].clientY - panRef.current.y;
+      setTranslate({ x: panRef.current.tx + dx, y: panRef.current.ty + dy });
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (pinchRef.current) {
+      pinchRef.current = null;
+      return;
+    }
+    if (panRef.current) {
+      panRef.current = null;
+      return;
+    }
     if (!touchStart.current) return;
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
@@ -100,8 +218,9 @@ export default function Lightbox({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={isZoomed ? undefined : onClose}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Close button */}
@@ -115,7 +234,7 @@ export default function Lightbox({
         </svg>
       </button>
 
-      {/* Info toggle -- always visible */}
+      {/* Info toggle */}
       <button
         className={`absolute top-5 right-16 z-10 p-2 transition-colors ${
           showDetails ? "text-white" : "text-white/50 hover:text-white"
@@ -131,8 +250,21 @@ export default function Lightbox({
         </svg>
       </button>
 
+      {/* Reset zoom button */}
+      {isZoomed && (
+        <button
+          className="absolute top-5 right-[7.5rem] z-10 p-2 text-white/50 hover:text-white transition-colors"
+          onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+          aria-label="Reset zoom"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+          </svg>
+        </button>
+      )}
+
       {/* Previous */}
-      {currentIndex > 0 && (
+      {currentIndex > 0 && !isZoomed && (
         <button
           className="absolute left-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => { e.stopPropagation(); goPrev(); }}
@@ -145,7 +277,7 @@ export default function Lightbox({
       )}
 
       {/* Next */}
-      {currentIndex < photos.length - 1 && (
+      {currentIndex < photos.length - 1 && !isZoomed && (
         <button
           className="absolute right-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => { e.stopPropagation(); goNext(); }}
@@ -169,22 +301,43 @@ export default function Lightbox({
           transition={{ duration: 0.3, ease: "easeInOut" }}
           className="relative flex max-h-[85vh] max-w-[90vw] items-center justify-center"
           onClick={(e) => e.stopPropagation()}
+          onWheel={handleWheel}
         >
-          <Image
-            src={photo.src}
-            alt={photo.title}
-            width={photo.width}
-            height={photo.height}
-            className="max-h-[85vh] w-auto object-contain"
-            sizes="90vw"
-            priority
-          />
+          <div
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{
+              transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+              transition: isDragging ? "none" : "transform 0.1s ease-out",
+              cursor: isZoomed ? (isDragging ? "grabbing" : "grab") : "default",
+            }}
+          >
+            <Image
+              src={photo.src}
+              alt={photo.title}
+              width={photo.width}
+              height={photo.height}
+              className="max-h-[85vh] w-auto object-contain select-none"
+              sizes="90vw"
+              priority
+              draggable={false}
+            />
+          </div>
         </motion.div>
       </AnimatePresence>
 
+      {/* Zoom indicator */}
+      {isZoomed && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/60 text-white/70 text-xs">
+          {Math.round(scale * 100)}%
+        </div>
+      )}
+
       {/* Caption + Details */}
       <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        className={`absolute bottom-0 left-0 right-0 pointer-events-none transition-opacity duration-200 ${isZoomed ? "opacity-0" : "opacity-100"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pb-6 pt-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">

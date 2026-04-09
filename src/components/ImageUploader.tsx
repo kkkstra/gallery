@@ -1,195 +1,22 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import ExifReader from "exifreader";
+import {
+  type ExifData,
+  type UploadResult,
+  readImageDimensions,
+  readExif,
+  generateThumbnail,
+  uploadToOSS,
+} from "@/lib/upload-utils";
 
-export interface ExifData {
-  camera?: string;
-  lens?: string;
-  aperture?: string;
-  shutterSpeed?: string;
-  iso?: string;
-  focalLength?: string;
-  takenAt?: string;
-  location?: string;
-}
-
-export interface UploadResult {
-  src: string;
-  thumbnail: string;
-  width: number;
-  height: number;
-  exif: ExifData;
-}
+export type { ExifData, UploadResult };
 
 interface ImageUploaderProps {
   onUpload: (result: UploadResult) => void;
 }
 
 type UploadState = "idle" | "reading" | "signing" | "uploading" | "done" | "error";
-
-function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      URL.revokeObjectURL(url);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to read image"));
-    };
-    img.src = url;
-  });
-}
-
-function formatShutterSpeed(val: number): string {
-  if (val >= 1) return `${val}s`;
-  const denom = Math.round(1 / val);
-  return `1/${denom}s`;
-}
-
-function dmsToDecimal(
-  degrees: number,
-  minutes: number,
-  seconds: number,
-  ref: string,
-): number {
-  let dec = degrees + minutes / 60 + seconds / 3600;
-  if (ref === "S" || ref === "W") dec = -dec;
-  return dec;
-}
-
-async function readExif(file: File): Promise<ExifData> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const tags = ExifReader.load(arrayBuffer, { expanded: true });
-
-    const exif: ExifData = {};
-
-    const exifTags = tags.exif || {};
-    const gps = tags.gps || {};
-
-    // Camera: Make + Model
-    const make = exifTags.Make?.description?.trim();
-    const model = exifTags.Model?.description?.trim();
-    if (make && model) {
-      exif.camera = model.startsWith(make) ? model : `${make} ${model}`;
-    } else if (model) {
-      exif.camera = model;
-    }
-
-    // Lens
-    const lensModel = exifTags.LensModel?.description?.trim();
-    if (lensModel) exif.lens = lensModel;
-
-    // Aperture
-    const fNumber = exifTags.FNumber?.value;
-    if (fNumber) {
-      const f = Array.isArray(fNumber) ? fNumber[0] / fNumber[1] : Number(fNumber);
-      if (f > 0) exif.aperture = `f/${f % 1 === 0 ? f : f.toFixed(1)}`;
-    }
-
-    // Shutter Speed
-    const exposure = exifTags.ExposureTime?.value;
-    if (exposure) {
-      const val = Array.isArray(exposure) ? exposure[0] / exposure[1] : Number(exposure);
-      if (val > 0) exif.shutterSpeed = formatShutterSpeed(val);
-    }
-
-    // ISO
-    const iso = exifTags.ISOSpeedRatings?.value;
-    if (iso != null) {
-      exif.iso = String(Array.isArray(iso) ? iso[0] : iso);
-    }
-
-    // Focal Length
-    const fl = exifTags.FocalLength?.value;
-    if (fl) {
-      const mm = Array.isArray(fl) ? fl[0] / fl[1] : Number(fl);
-      if (mm > 0) exif.focalLength = `${Math.round(mm)}mm`;
-    }
-
-    // Date Taken
-    const dateStr =
-      exifTags.DateTimeOriginal?.description ||
-      exifTags.DateTime?.description;
-    if (dateStr) {
-      // EXIF date format: "2026:04:08 12:30:00" → "2026-04-08"
-      const match = dateStr.match(/^(\d{4})[:\-/](\d{2})[:\-/](\d{2})/);
-      if (match) exif.takenAt = `${match[1]}-${match[2]}-${match[3]}`;
-    }
-
-    // GPS Location
-    const lat = gps.Latitude;
-    const lon = gps.Longitude;
-    if (lat != null && lon != null) {
-      exif.location = `${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
-    }
-
-    return exif;
-  } catch {
-    return {};
-  }
-}
-
-const THUMB_MAX_WIDTH = 800;
-const THUMB_QUALITY = 0.85;
-
-function generateThumbnail(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.onload = () => {
-      const scale = Math.min(1, THUMB_MAX_WIDTH / img.naturalWidth);
-      const w = Math.round(img.naturalWidth * scale);
-      const h = Math.round(img.naturalHeight * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url);
-          if (blob) resolve(blob);
-          else reject(new Error("Failed to generate thumbnail"));
-        },
-        "image/jpeg",
-        THUMB_QUALITY,
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image for thumbnail"));
-    };
-    img.src = url;
-  });
-}
-
-function uploadToOSS(
-  signedUrl: string,
-  file: File,
-  contentType: string,
-  onProgress: (pct: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", signedUrl, true);
-    xhr.setRequestHeader("Content-Type", contentType);
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
-    };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.send(file);
-  });
-}
 
 export default function ImageUploader({ onUpload }: ImageUploaderProps) {
   const [state, setState] = useState<UploadState>("idle");
@@ -238,7 +65,7 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
 
         await Promise.all([
           uploadToOSS(signedUrl, file, file.type, setProgress),
-          uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg", () => {}),
+          uploadToOSS(thumbSignedUrl, new File([thumbBlob], "thumb.jpg", { type: "image/jpeg" }), "image/jpeg"),
         ]);
 
         setState("done");

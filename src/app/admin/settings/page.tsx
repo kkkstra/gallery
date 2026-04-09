@@ -295,6 +295,37 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {/* Data Export */}
+      <div className="mt-10">
+        <h2 className="text-sm font-medium uppercase tracking-widest text-neutral-400 mb-4 pb-2 border-b border-white/10">
+          Data Export
+        </h2>
+        <p className="text-sm text-neutral-500 mb-3">
+          Export all site data (settings, photos, collections, etc.) as JSON. Photo files remain on your storage; the export includes their URLs.
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            const res = await fetch("/api/export");
+            if (!res.ok) return alert("Export failed");
+            const data = await res.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `gallery-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-neutral-400 hover:text-white hover:border-white/30 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Export Data
+        </button>
+      </div>
+
       {/* Save button */}
       <div className="mt-10 flex items-center gap-4 sticky bottom-0 bg-neutral-950 py-4 border-t border-white/10">
         <button

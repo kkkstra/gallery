@@ -4,6 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { marked } from "marked";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface CollectionPhoto {
   id: number;
@@ -18,6 +34,54 @@ interface AvailablePhoto {
   src: string;
   thumbnail: string | null;
   title: string;
+}
+
+function SortablePhoto({
+  photo,
+  onRemove,
+}: {
+  photo: CollectionPhoto;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="group relative aspect-square overflow-hidden rounded-lg bg-white/5"
+    >
+      <Image src={photo.thumbnail || photo.src} alt={photo.title} fill className="object-cover" sizes="120px" />
+      <div
+        className="absolute top-1 left-1 cursor-grab active:cursor-grabbing p-0.5 rounded bg-black/60 text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+        {...listeners}
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.5" />
+          <circle cx="11" cy="3" r="1.5" />
+          <circle cx="5" cy="8" r="1.5" />
+          <circle cx="11" cy="8" r="1.5" />
+          <circle cx="5" cy="13" r="1.5" />
+          <circle cx="11" cy="13" r="1.5" />
+        </svg>
+      </div>
+      <button
+        onClick={onRemove}
+        className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 export default function EditCollectionPage() {
@@ -93,6 +157,27 @@ export default function EditCollectionPage() {
       method: "DELETE",
     });
     setCollectionPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handlePhotoDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = collectionPhotos.findIndex((p) => p.id === active.id);
+    const newIndex = collectionPhotos.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(collectionPhotos, oldIndex, newIndex);
+    setCollectionPhotos(reordered);
+
+    await fetch(`/api/collections/${collectionId}/photos/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoIds: reordered.map((p) => p.id) }),
+    });
   };
 
   const toggleSelect = (id: number) => {
@@ -252,21 +337,15 @@ export default function EditCollectionPage() {
             No photos in this collection yet.
           </p>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-            {collectionPhotos.map((p) => (
-              <div key={p.id} className="group relative aspect-square overflow-hidden rounded-lg bg-white/5">
-                <Image src={p.thumbnail || p.src} alt={p.title} fill className="object-cover" sizes="120px" />
-                <button
-                  onClick={() => removePhoto(p.id)}
-                  className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
+            <SortableContext items={collectionPhotos.map((p) => p.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                {collectionPhotos.map((p) => (
+                  <SortablePhoto key={p.id} photo={p} onRemove={() => removePhoto(p.id)} />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
