@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (data.categories?.length) {
       for (const row of data.categories) {
         await db.run(
-          sql`INSERT INTO categories (id, name, slug) VALUES (${row.id}, ${row.name}, ${row.slug})`,
+          sql`INSERT INTO categories (id, name, slug, name_zh) VALUES (${row.id}, ${row.name}, ${row.slug}, ${row.nameZh ?? row.name_zh ?? null})`,
         );
       }
       counts.categories = data.categories.length;
@@ -80,7 +80,9 @@ export async function POST(request: NextRequest) {
           src: row.src,
           thumbnail: row.thumbnail || null,
           title: row.title,
+          titleZh: row.titleZh ?? row.title_zh ?? null,
           description: row.description || null,
+          descriptionZh: row.descriptionZh ?? row.description_zh ?? null,
           categorySlug: row.categorySlug || row.category_slug,
           width: row.width,
           height: row.height,
@@ -107,8 +109,10 @@ export async function POST(request: NextRequest) {
         await db.insert(collections).values({
           id: row.id,
           title: row.title,
+          titleZh: row.titleZh ?? row.title_zh ?? null,
           slug: row.slug,
           description: row.description || null,
+          descriptionZh: row.descriptionZh ?? row.description_zh ?? null,
           coverPhotoId: row.coverPhotoId ?? row.cover_photo_id ?? null,
           sortOrder: row.sortOrder ?? row.sort_order ?? 0,
           createdAt: row.createdAt || row.created_at || null,

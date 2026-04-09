@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { marked } from "marked";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/lib/db/schema";
+import { T } from "@/components/T";
+import { AboutContent } from "./AboutContent";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +16,15 @@ async function getSettings() {
 export default async function AboutPage() {
   const settings = await getSettings();
   const portraitUrl = settings.about_portrait_url || "";
-  const content = settings.about_content || "";
-  const html = marked.parse(content, { async: false }) as string;
 
   return (
     <section className="mx-auto max-w-4xl px-6 py-16">
       <div className="mb-16 text-center">
         <p className="text-sm tracking-[0.3em] uppercase text-[var(--text-faint)]">
-          The Photographer
+          <T k="about.subtitle" />
         </p>
         <h1 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide text-[var(--text)]">
-          About
+          <T k="about.title" />
         </h1>
       </div>
 
@@ -42,9 +41,9 @@ export default async function AboutPage() {
           </div>
         )}
 
-        <div
-          className="prose-styled"
-          dangerouslySetInnerHTML={{ __html: html }}
+        <AboutContent
+          contentEn={settings.about_content || ""}
+          contentZh={settings.about_content_zh || ""}
         />
       </div>
     </section>

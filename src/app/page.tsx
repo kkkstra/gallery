@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
+import { T, L } from "@/components/T";
 import { db } from "@/lib/db";
 import { photos as photosTable, siteSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -29,7 +30,7 @@ export default async function Home() {
   if (!heroPhoto) {
     return (
       <section className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-[var(--text-faint)]">No photos yet. Add some in the admin panel.</p>
+        <p className="text-[var(--text-faint)]"><T k="home.empty" /></p>
       </section>
     );
   }
@@ -39,18 +40,22 @@ export default async function Home() {
       <Hero
         imageSrc={heroPhoto.src}
         subtitle={settings.hero_subtitle}
+        subtitleZh={settings.hero_subtitle_zh}
         title={settings.hero_title}
+        titleZh={settings.hero_title_zh}
         description={settings.hero_description}
+        descriptionZh={settings.hero_description_zh}
         ctaText={settings.hero_cta_text}
+        ctaTextZh={settings.hero_cta_text_zh}
       />
 
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-16 text-center">
           <p className="text-sm tracking-[0.3em] uppercase text-[var(--text-faint)]">
-            Selected Works
+            <T k="home.selectedWorks" />
           </p>
           <h2 className="mt-3 text-3xl md:text-4xl font-extralight tracking-wide text-[var(--text)]">
-            Featured
+            <T k="home.featured" />
           </h2>
         </div>
 
@@ -63,7 +68,7 @@ export default async function Home() {
             >
               <Image
                 src={photo.thumbnail || photo.src}
-                alt={photo.title}
+                alt={photo.titleZh || photo.title}
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -71,7 +76,7 @@ export default async function Home() {
               <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/40" />
               <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                 <h3 className="text-lg font-light tracking-wider text-white">
-                  {photo.title}
+                  <L en={photo.title} zh={photo.titleZh} />
                 </h3>
                 <p className="mt-1 text-sm text-white/70">
                   {photo.categorySlug}
@@ -86,7 +91,7 @@ export default async function Home() {
             href="/gallery"
             className="inline-flex items-center gap-2 border border-[var(--border)] px-8 py-3 text-sm tracking-widest uppercase text-[var(--text)] transition-all hover:bg-[var(--text)] hover:text-[var(--bg)]"
           >
-            View All Works
+            <T k="home.viewAll" />
             <svg
               className="h-4 w-4"
               fill="none"

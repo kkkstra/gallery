@@ -24,22 +24,29 @@ const SETTING_SECTIONS = [
     title: "Site Info",
     fields: [
       { key: "site_title", label: "Site Title", type: "text" },
+      { key: "site_title_zh", label: "Site Title (中文)", type: "text" },
       { key: "site_description", label: "Site Description", type: "text" },
+      { key: "site_description_zh", label: "Site Description (中文)", type: "text" },
     ],
   },
   {
     title: "Hero Section",
     fields: [
       { key: "hero_subtitle", label: "Subtitle", type: "text" },
+      { key: "hero_subtitle_zh", label: "Subtitle (中文)", type: "text" },
       { key: "hero_title", label: "Title", type: "text" },
+      { key: "hero_title_zh", label: "Title (中文)", type: "text" },
       { key: "hero_description", label: "Description", type: "text" },
+      { key: "hero_description_zh", label: "Description (中文)", type: "text" },
       { key: "hero_cta_text", label: "Button Text", type: "text" },
+      { key: "hero_cta_text_zh", label: "Button Text (中文)", type: "text" },
     ],
   },
   {
     title: "Footer",
     fields: [
       { key: "footer_copyright", label: "Copyright Text", type: "text" },
+      { key: "footer_copyright_zh", label: "Copyright Text (中文)", type: "text" },
     ],
   },
 ];
@@ -50,7 +57,8 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewAboutEn, setPreviewAboutEn] = useState(false);
+  const [previewAboutZh, setPreviewAboutZh] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -188,46 +196,93 @@ export default function AdminSettingsPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm text-neutral-400">
-                  Content (Markdown / HTML)
-                </label>
-                <div className="flex rounded-lg border border-white/10 overflow-hidden">
-                  <button
-                    onClick={() => setPreviewMode(false)}
-                    className={`px-3 py-1 text-xs transition-colors ${
-                      !previewMode ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
-                    }`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setPreviewMode(true)}
-                    className={`px-3 py-1 text-xs transition-colors ${
-                      previewMode ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
-                    }`}
-                  >
-                    Preview
-                  </button>
+              <label className="block text-sm text-neutral-400 mb-1.5">
+                Content (Markdown / HTML)
+              </label>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-neutral-500">EN</span>
+                    <div className="flex rounded-lg border border-white/10 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAboutEn(false)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          !previewAboutEn ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
+                        }`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAboutEn(true)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          previewAboutEn ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
+                        }`}
+                      >
+                        Preview
+                      </button>
+                    </div>
+                  </div>
+                  {previewAboutEn ? (
+                    <div
+                      className="prose-dark min-h-[300px] rounded-lg border border-white/10 bg-white/5 p-6"
+                      dangerouslySetInnerHTML={{
+                        __html: marked.parse(settings.about_content || "", { async: false }) as string,
+                      }}
+                    />
+                  ) : (
+                    <textarea
+                      value={settings.about_content || ""}
+                      onChange={(e) => handleChange("about_content", e.target.value)}
+                      rows={16}
+                      className={`${inputClass} font-mono text-sm leading-relaxed`}
+                      placeholder="Write your about page content in Markdown or HTML..."
+                    />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-neutral-500">中文</span>
+                    <div className="flex rounded-lg border border-white/10 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAboutZh(false)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          !previewAboutZh ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
+                        }`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAboutZh(true)}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          previewAboutZh ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white"
+                        }`}
+                      >
+                        Preview
+                      </button>
+                    </div>
+                  </div>
+                  {previewAboutZh ? (
+                    <div
+                      className="prose-dark min-h-[300px] rounded-lg border border-white/10 bg-white/5 p-6"
+                      dangerouslySetInnerHTML={{
+                        __html: marked.parse(settings.about_content_zh || "", { async: false }) as string,
+                      }}
+                    />
+                  ) : (
+                    <textarea
+                      value={settings.about_content_zh || ""}
+                      onChange={(e) => handleChange("about_content_zh", e.target.value)}
+                      rows={16}
+                      className={`${inputClass} font-mono text-sm leading-relaxed`}
+                      placeholder="中文关于页内容（Markdown / HTML）..."
+                    />
+                  )}
                 </div>
               </div>
-
-              {previewMode ? (
-                <div
-                  className="prose-dark min-h-[300px] rounded-lg border border-white/10 bg-white/5 p-6"
-                  dangerouslySetInnerHTML={{
-                    __html: marked.parse(settings.about_content || "", { async: false }) as string,
-                  }}
-                />
-              ) : (
-                <textarea
-                  value={settings.about_content || ""}
-                  onChange={(e) => handleChange("about_content", e.target.value)}
-                  rows={16}
-                  className={`${inputClass} font-mono text-sm leading-relaxed`}
-                  placeholder="Write your about page content in Markdown or HTML..."
-                />
-              )}
             </div>
           </div>
         </div>

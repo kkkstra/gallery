@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const result = await db
     .insert(categories)
-    .values({ name: body.name, slug })
+    .values({ name: body.name, slug, nameZh: body.nameZh || null })
     .returning();
 
   return NextResponse.json(result[0], { status: 201 });

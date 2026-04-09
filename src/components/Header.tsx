@@ -4,16 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTheme } from "./ThemeProvider";
+import { useLocale } from "./LocaleProvider";
+import type { TransKey } from "@/lib/i18n";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/collections", label: "Collections" },
-  { href: "/about", label: "About" },
+const navLinks: { href: string; labelKey: TransKey }[] = [
+  { href: "/", labelKey: "nav.home" },
+  { href: "/gallery", labelKey: "nav.gallery" },
+  { href: "/collections", labelKey: "nav.collections" },
+  { href: "/about", labelKey: "nav.about" },
 ];
 
 function ThemeToggle() {
   const { theme, setTheme, resolved } = useTheme();
+  const { t } = useLocale();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -32,8 +35,8 @@ function ThemeToggle() {
       onClick={cycle}
       onDoubleClick={longPress}
       className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-      aria-label="Toggle theme"
-      title={`Theme: ${theme}${theme === "system" ? ` (${resolved})` : ""} — double-click for system`}
+      aria-label={t("nav.toggleTheme")}
+      title={t("nav.toggleTheme")}
     >
       {resolved === "dark" ? (
         <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -48,16 +51,37 @@ function ThemeToggle() {
   );
 }
 
+function LocaleToggle() {
+  const { locale, setLocale } = useLocale();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <div className="w-8 h-8" />;
+
+  return (
+    <button
+      onClick={() => setLocale(locale === "en" ? "zh" : "en")}
+      className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-xs font-medium tracking-wide"
+      aria-label="Switch language"
+    >
+      {locale === "en" ? "中" : "EN"}
+    </button>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
+  const { t, localized } = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const [siteTitle, setSiteTitle] = useState("Gallery");
+  const [siteTitleZh, setSiteTitleZh] = useState("");
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
         if (data.site_title) setSiteTitle(data.site_title);
+        if (data.site_title_zh) setSiteTitleZh(data.site_title_zh);
       })
       .catch(() => {});
   }, []);
@@ -71,7 +95,7 @@ export default function Header() {
           href="/"
           className="text-xl font-light tracking-[0.3em] uppercase text-[var(--text)]"
         >
-          {siteTitle}
+          {localized(siteTitle, siteTitleZh)}
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
@@ -86,20 +110,22 @@ export default function Header() {
                       : "text-[var(--text-muted)] hover:text-[var(--text)]"
                   }`}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               </li>
             ))}
           </ul>
+          <LocaleToggle />
           <ThemeToggle />
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
+          <LocaleToggle />
           <ThemeToggle />
           <button
             className="flex flex-col gap-1.5 p-2"
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={t("nav.toggleMenu")}
           >
             <span className={`block h-px w-6 bg-[var(--text)] transition-transform ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
             <span className={`block h-px w-6 bg-[var(--text)] transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
@@ -122,7 +148,7 @@ export default function Header() {
                   }`}
                   onClick={() => setMenuOpen(false)}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               </li>
             ))}

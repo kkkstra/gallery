@@ -43,8 +43,10 @@ export async function PUT(
     .update(collections)
     .set({
       title: body.title,
+      titleZh: body.titleZh || null,
       slug,
       description: body.description || null,
+      descriptionZh: body.descriptionZh || null,
       coverPhotoId: body.coverPhotoId || null,
       sortOrder: body.sortOrder ?? 0,
     })

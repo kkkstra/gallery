@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "./LocaleProvider";
 
 interface SocialLink {
   id: number;
@@ -11,8 +12,10 @@ interface SocialLink {
 }
 
 export default function Footer() {
+  const { t, localized } = useLocale();
   const [links, setLinks] = useState<SocialLink[]>([]);
-  const [copyright, setCopyright] = useState("Gallery. All rights reserved.");
+  const [copyright, setCopyright] = useState("");
+  const [copyrightZh, setCopyrightZh] = useState("");
 
   useEffect(() => {
     fetch("/api/social-links")
@@ -23,6 +26,7 @@ export default function Footer() {
       .then((r) => r.json())
       .then((data) => {
         if (data.footer_copyright) setCopyright(data.footer_copyright);
+        if (data.footer_copyright_zh) setCopyrightZh(data.footer_copyright_zh);
       })
       .catch(() => {});
   }, []);
@@ -46,7 +50,7 @@ export default function Footer() {
           </div>
         )}
         <p className="tracking-wide">
-          &copy; {new Date().getFullYear()} {copyright}
+          &copy; {new Date().getFullYear()} {localized(copyright, copyrightZh) || t("footer.copyright")}
         </p>
       </div>
     </footer>

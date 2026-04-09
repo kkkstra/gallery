@@ -24,7 +24,7 @@ export async function PUT(
 
   const result = await db
     .update(categories)
-    .set({ name: body.name, slug })
+    .set({ name: body.name, slug, nameZh: body.nameZh || null })
     .where(eq(categories.id, Number(id)))
     .returning();
 

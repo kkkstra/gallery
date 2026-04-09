@@ -11,8 +11,10 @@ export async function GET() {
     .select({
       id: collections.id,
       title: collections.title,
+      titleZh: collections.titleZh,
       slug: collections.slug,
       description: collections.description,
+      descriptionZh: collections.descriptionZh,
       coverPhotoId: collections.coverPhotoId,
       sortOrder: collections.sortOrder,
       createdAt: collections.createdAt,
@@ -50,8 +52,10 @@ export async function POST(request: NextRequest) {
     .insert(collections)
     .values({
       title: body.title,
+      titleZh: body.titleZh || null,
       slug,
       description: body.description || null,
+      descriptionZh: body.descriptionZh || null,
       coverPhotoId: body.coverPhotoId || null,
       sortOrder: body.sortOrder || 0,
     })

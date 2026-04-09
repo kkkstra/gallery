@@ -23,7 +23,9 @@ interface PhotoFormProps {
     src: string;
     thumbnail: string;
     title: string;
+    titleZh?: string | null;
     description: string;
+    descriptionZh?: string | null;
     categorySlug: string;
     width: number;
     height: number;
@@ -62,7 +64,9 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
     src: initialData?.src || "",
     thumbnail: initialData?.thumbnail || "",
     title: initialData?.title || "",
+    titleZh: initialData?.titleZh || "",
     description: initialData?.description || "",
+    descriptionZh: initialData?.descriptionZh || "",
     categorySlug: initialData?.categorySlug || "",
     width: initialData?.width || 1920,
     height: initialData?.height || 1280,
@@ -328,25 +332,55 @@ export default function PhotoForm({ initialData }: PhotoFormProps) {
 
       <div>
         <label className="block text-sm text-neutral-400 mb-1.5">Title *</label>
-        <input
-          type="text"
-          required
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          placeholder="Photo title"
-          className={inputClass}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500 w-8 shrink-0">EN</span>
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Photo title"
+              className={inputClass}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500 w-8 shrink-0">中文</span>
+            <input
+              type="text"
+              value={form.titleZh}
+              onChange={(e) => setForm({ ...form, titleZh: e.target.value })}
+              placeholder="中文标题（可选）"
+              className={inputClass}
+            />
+          </div>
+        </div>
       </div>
 
       <div>
         <label className="block text-sm text-neutral-400 mb-1.5">Description</label>
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Short description (optional)"
-          rows={3}
-          className={inputClass}
-        />
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-xs text-neutral-500 w-8 shrink-0 pt-2.5">EN</span>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Short description (optional)"
+              rows={3}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-xs text-neutral-500 w-8 shrink-0 pt-2.5">中文</span>
+            <textarea
+              value={form.descriptionZh}
+              onChange={(e) => setForm({ ...form, descriptionZh: e.target.value })}
+              placeholder="中文描述（可选）"
+              rows={3}
+              className={inputClass}
+            />
+          </div>
+        </div>
       </div>
 
       <div>

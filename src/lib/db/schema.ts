@@ -9,6 +9,7 @@ export const siteSettings = sqliteTable("site_settings", {
 export const categories = sqliteTable("categories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  nameZh: text("name_zh"),
   slug: text("slug").notNull().unique(),
 });
 
@@ -37,7 +38,9 @@ export const photos = sqliteTable("photos", {
   src: text("src").notNull(),
   thumbnail: text("thumbnail"),
   title: text("title").notNull(),
+  titleZh: text("title_zh"),
   description: text("description"),
+  descriptionZh: text("description_zh"),
   categorySlug: text("category_slug")
     .notNull()
     .references(() => categories.slug),
@@ -61,8 +64,10 @@ export const photos = sqliteTable("photos", {
 export const collections = sqliteTable("collections", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
+  titleZh: text("title_zh"),
   slug: text("slug").notNull().unique(),
   description: text("description"),
+  descriptionZh: text("description_zh"),
   coverPhotoId: integer("cover_photo_id").references(() => photos.id),
   sortOrder: integer("sort_order").default(0),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),

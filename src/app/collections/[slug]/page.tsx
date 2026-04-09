@@ -8,18 +8,22 @@ import { marked } from "marked";
 import { Photo } from "@/lib/types";
 import PhotoGrid from "@/components/PhotoGrid";
 import Lightbox from "@/components/Lightbox";
+import { useLocale } from "@/components/LocaleProvider";
 
 interface CollectionData {
   id: number;
   title: string;
+  titleZh?: string | null;
   slug: string;
   description: string | null;
+  descriptionZh?: string | null;
   coverPhotoId: number | null;
 }
 
 export default function CollectionDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const { t, photoCount, localized } = useLocale();
 
   const [collection, setCollection] = useState<CollectionData | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -48,7 +52,9 @@ export default function CollectionDetailPage() {
                 src: p.src as string,
                 thumbnail: p.thumbnail as string | undefined,
                 title: p.title as string,
+                titleZh: p.titleZh as string | undefined,
                 description: p.description as string | undefined,
+                descriptionZh: p.descriptionZh as string | undefined,
                 category: p.categorySlug as string,
                 width: p.width as number,
                 height: p.height as number,
@@ -72,7 +78,7 @@ export default function CollectionDetailPage() {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="flex items-center justify-center py-20">
-          <p className="text-[var(--text-faint)]">Loading...</p>
+          <p className="text-[var(--text-faint)]">{t("collections.loading")}</p>
         </div>
       </section>
     );
@@ -82,24 +88,25 @@ export default function CollectionDetailPage() {
     return (
       <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="text-center py-20">
-          <p className="text-[var(--text-faint)]">Collection not found.</p>
+          <p className="text-[var(--text-faint)]">{t("collections.notFound")}</p>
         </div>
       </section>
     );
   }
 
-  const descriptionHtml = collection.description
-    ? (marked.parse(collection.description, { async: false }) as string)
+  const colTitle = localized(collection.title, collection.titleZh);
+  const colDesc = localized(collection.description, collection.descriptionZh);
+  const descriptionHtml = colDesc
+    ? (marked.parse(colDesc, { async: false }) as string)
     : null;
 
   return (
     <>
-      {/* Hero header */}
       <section className="relative h-[50vh] min-h-[320px] w-full overflow-hidden">
         {coverSrc ? (
           <Image
             src={coverSrc}
-            alt={collection.title}
+            alt={colTitle}
             fill
             priority
             quality={90}
@@ -112,11 +119,11 @@ export default function CollectionDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-black/40 to-black/20" />
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-10">
           <div className="mx-auto max-w-7xl">
-            <p className="text-sm tracking-[0.3em] uppercase text-white/60 mb-2">Collection</p>
+            <p className="text-sm tracking-[0.3em] uppercase text-white/60 mb-2">{t("collections.collection")}</p>
             <h1 className="text-4xl md:text-5xl font-extralight tracking-wider text-white">
-              {collection.title}
+              {colTitle}
             </h1>
-            <p className="mt-2 text-sm text-white/50">{photos.length} photos</p>
+            <p className="mt-2 text-sm text-white/50">{photoCount(photos.length)}</p>
           </div>
         </div>
       </section>

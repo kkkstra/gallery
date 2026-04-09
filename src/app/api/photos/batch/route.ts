@@ -42,6 +42,8 @@ export async function PATCH(request: NextRequest) {
   const updates: Record<string, unknown> = {};
   if (changes.categorySlug !== undefined) updates.categorySlug = changes.categorySlug;
   if (changes.featured !== undefined) updates.featured = changes.featured;
+  if (changes.titleZh !== undefined) updates.titleZh = changes.titleZh;
+  if (changes.descriptionZh !== undefined) updates.descriptionZh = changes.descriptionZh;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No changes" }, { status: 400 });

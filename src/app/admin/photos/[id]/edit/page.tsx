@@ -11,7 +11,9 @@ export default function EditPhotoPage() {
     src: string;
     thumbnail: string;
     title: string;
+    titleZh?: string | null;
     description: string;
+    descriptionZh?: string | null;
     categorySlug: string;
     width: number;
     height: number;
@@ -37,7 +39,9 @@ export default function EditPhotoPage() {
           src: data.src,
           thumbnail: data.thumbnail || "",
           title: data.title,
+          titleZh: data.titleZh ?? "",
           description: data.description || "",
+          descriptionZh: data.descriptionZh ?? "",
           categorySlug: data.categorySlug,
           width: data.width,
           height: data.height,

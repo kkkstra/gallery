@@ -3,8 +3,11 @@ export interface Photo {
   src: string;
   thumbnail?: string;
   title: string;
+  titleZh?: string;
   description?: string;
+  descriptionZh?: string;
   category: string;
+  categoryZh?: string;
   width: number;
   height: number;
   featured?: boolean;

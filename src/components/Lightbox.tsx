@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Photo } from "@/lib/types";
+import { useLocale } from "./LocaleProvider";
 
 const DESC_TRUNCATE = 120;
 const MIN_SCALE = 1;
@@ -39,7 +40,10 @@ export default function Lightbox({
   onClose,
   onNavigate,
 }: LightboxProps) {
+  const { t, localized } = useLocale();
   const photo = photos[currentIndex];
+  const photoTitle = localized(photo.title, photo.titleZh);
+  const photoDesc = localized(photo.description, photo.descriptionZh);
   const [direction, setDirection] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -61,9 +65,9 @@ export default function Lightbox({
   }, []);
 
   const descTruncated = useMemo(() => {
-    if (!photo.description || photo.description.length <= DESC_TRUNCATE) return null;
-    return photo.description.slice(0, DESC_TRUNCATE).trimEnd() + "...";
-  }, [photo.description]);
+    if (!photoDesc || photoDesc.length <= DESC_TRUNCATE) return null;
+    return photoDesc.slice(0, DESC_TRUNCATE).trimEnd() + "...";
+  }, [photoDesc]);
 
   const goNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
@@ -223,18 +227,16 @@ export default function Lightbox({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Close button */}
       <button
         className="absolute top-5 right-5 z-10 p-2 text-white/70 hover:text-white transition-colors"
         onClick={onClose}
-        aria-label="Close lightbox"
+        aria-label={t("lightbox.close")}
       >
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      {/* Info toggle */}
       <button
         className={`absolute top-5 right-16 z-10 p-2 transition-colors ${
           showDetails ? "text-white" : "text-white/50 hover:text-white"
@@ -243,19 +245,18 @@ export default function Lightbox({
           e.stopPropagation();
           setShowDetails((v) => !v);
         }}
-        aria-label="Toggle details"
+        aria-label={t("lightbox.toggleDetails")}
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
         </svg>
       </button>
 
-      {/* Reset zoom button */}
       {isZoomed && (
         <button
           className="absolute top-5 right-[7.5rem] z-10 p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => { e.stopPropagation(); resetZoom(); }}
-          aria-label="Reset zoom"
+          aria-label={t("lightbox.resetZoom")}
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
@@ -263,12 +264,11 @@ export default function Lightbox({
         </button>
       )}
 
-      {/* Previous */}
       {currentIndex > 0 && !isZoomed && (
         <button
           className="absolute left-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => { e.stopPropagation(); goPrev(); }}
-          aria-label="Previous photo"
+          aria-label={t("lightbox.prev")}
         >
           <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -276,12 +276,11 @@ export default function Lightbox({
         </button>
       )}
 
-      {/* Next */}
       {currentIndex < photos.length - 1 && !isZoomed && (
         <button
           className="absolute right-4 z-10 p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => { e.stopPropagation(); goNext(); }}
-          aria-label="Next photo"
+          aria-label={t("lightbox.next")}
         >
           <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -289,7 +288,6 @@ export default function Lightbox({
         </button>
       )}
 
-      {/* Image */}
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
           key={photo.id}
@@ -316,7 +314,7 @@ export default function Lightbox({
           >
             <Image
               src={photo.src}
-              alt={photo.title}
+              alt={photoTitle}
               width={photo.width}
               height={photo.height}
               className="max-h-[85vh] w-auto object-contain select-none"
@@ -328,14 +326,12 @@ export default function Lightbox({
         </motion.div>
       </AnimatePresence>
 
-      {/* Zoom indicator */}
       {isZoomed && (
         <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/60 text-white/70 text-xs">
           {Math.round(scale * 100)}%
         </div>
       )}
 
-      {/* Caption + Details */}
       <div
         className={`absolute bottom-0 left-0 right-0 pointer-events-none transition-opacity duration-200 ${isZoomed ? "opacity-0" : "opacity-100"}`}
         onClick={(e) => e.stopPropagation()}
@@ -343,15 +339,15 @@ export default function Lightbox({
         <div className="pb-6 pt-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
           <div className="max-w-3xl mx-auto px-6 sm:px-10">
             <div className="flex items-baseline justify-between gap-4">
-              <h3 className="text-lg font-light tracking-wider text-white">{photo.title}</h3>
+              <h3 className="text-lg font-light tracking-wider text-white">{photoTitle}</h3>
               <span className="text-xs text-white/40 shrink-0">
                 {currentIndex + 1} / {photos.length}
               </span>
             </div>
-            {photo.description && (
+            {photoDesc && (
               <div className="mt-1.5">
                 <p className="text-sm text-white/60 leading-relaxed">
-                  {descTruncated && !descExpanded ? descTruncated : photo.description}
+                  {descTruncated && !descExpanded ? descTruncated : photoDesc}
                 </p>
                 {descTruncated && (
                   <button
@@ -359,7 +355,7 @@ export default function Lightbox({
                     className="text-xs text-white/40 hover:text-white/70 transition-colors mt-1"
                     onClick={(e) => { e.stopPropagation(); setDescExpanded((v) => !v); }}
                   >
-                    {descExpanded ? "Show less" : "Show more"}
+                    {descExpanded ? t("lightbox.showLess") : t("lightbox.showMore")}
                   </button>
                 )}
               </div>
@@ -375,16 +371,16 @@ export default function Lightbox({
                   className="overflow-hidden"
                 >
                   <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 border-t border-white/10 pt-4">
-                    <DetailItem label="Category" value={photo.category} />
-                    <DetailItem label="Dimensions" value={`${photo.width} × ${photo.height}`} />
-                    <DetailItem label="Camera" value={photo.camera} />
-                    <DetailItem label="Lens" value={photo.lens} />
-                    <DetailItem label="Aperture" value={photo.aperture} />
-                    <DetailItem label="Shutter" value={photo.shutterSpeed} />
-                    <DetailItem label="ISO" value={photo.iso} />
-                    <DetailItem label="Focal" value={photo.focalLength} />
-                    <DetailItem label="Date" value={photo.takenAt} />
-                    <DetailItem label="Location" value={photo.location} />
+                    <DetailItem label={t("detail.category")} value={photo.category} />
+                    <DetailItem label={t("detail.dimensions")} value={`${photo.width} × ${photo.height}`} />
+                    <DetailItem label={t("detail.camera")} value={photo.camera} />
+                    <DetailItem label={t("detail.lens")} value={photo.lens} />
+                    <DetailItem label={t("detail.aperture")} value={photo.aperture} />
+                    <DetailItem label={t("detail.shutter")} value={photo.shutterSpeed} />
+                    <DetailItem label={t("detail.iso")} value={photo.iso} />
+                    <DetailItem label={t("detail.focal")} value={photo.focalLength} />
+                    <DetailItem label={t("detail.date")} value={photo.takenAt} />
+                    <DetailItem label={t("detail.location")} value={photo.location} />
                   </div>
                 </motion.div>
               )}

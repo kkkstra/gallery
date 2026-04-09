@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ThemeProvider from "@/components/ThemeProvider";
+import LocaleProvider from "@/components/LocaleProvider";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/lib/db/schema";
 import "./globals.css";
@@ -43,9 +44,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
-          <Header />
-          <main className="flex-1 pt-[73px]">{children}</main>
-          <Footer />
+          <LocaleProvider>
+            <Header />
+            <main className="flex-1 pt-[73px]">{children}</main>
+            <Footer />
+          </LocaleProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
